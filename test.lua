@@ -1,13 +1,14 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CoreGui = game:GetService("CoreGui")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 local HttpService = game:GetService("HttpService")
 
--- Ana GUI oluşturma
+-- Ana GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RemoteEventSender"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+screenGui.Parent = playerGui -- Burada CoreGui yerine PlayerGui kullandık
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 800, 0, 600)
@@ -262,7 +263,6 @@ local function sendData()
     end
 
     if current and current:IsA("RemoteEvent") then
-        -- Eğer event FireClient ise (client → server değil), kullanıcının client’ına gönder
         current:FireClient(selectedPlayer, data)
         print(string.format("[%s] kullanıcısına [%s] eventi gönderildi: %s",
             selectedPlayer.Name, selectedEvent, tostring(data)))
