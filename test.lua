@@ -1,29 +1,37 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
+-- Eğer CoreGui'ya eklenemiyorsa StarterGui'ya ekle
+local parentGui = CoreGui or player:WaitForChild("PlayerGui")
+
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SimpleInfoDisplay"
+screenGui.Name = "InjectInfoDisplay"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+screenGui.Parent = parentGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 400, 0, 50)
 frame.Position = UDim2.new(0.5, -200, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 Instance.new("UICorner", frame)
 
-local infoLabel = Instance.new("TextLabel")
-infoLabel.Size = UDim2.new(1, -20, 1, 0)
-infoLabel.Position = UDim2.new(0, 10, 0, 0)
-infoLabel.BackgroundTransparency = 1
-infoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-infoLabel.Font = Enum.Font.GothamBold
-infoLabel.TextSize = 20
-infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-infoLabel.Text = "Kullanıcı - Event - Veri"
-infoLabel.Parent = frame
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, -20, 1, 0)
+label.Position = UDim2.new(0, 10, 0, 0)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.Font = Enum.Font.GothamBold
+label.TextSize = 20
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.Text = "Kullanıcı - Event - Veri"
+label.Parent = frame
 
 local function showInfo(playerName, eventName, data)
-    infoLabel.Text = string.format("%s - %s - %s", playerName, eventName, tostring(data))
+    label.Text = string.format("%s - %s - %s", playerName, eventName, tostring(data))
 end
+
+-- Örnek veri
+showInfo(player.Name, "GameEvents.Misk.BanReceived", "{ reason = 'Hile' }")
