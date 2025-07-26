@@ -1,82 +1,109 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RemoteEventFinderGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "EventFinderGui"
+gui.ResetOnSpawn = false
+gui.Parent = CoreGui
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 1000, 0, 600)
-frame.Position = UDim2.new(0, 0, 0.5, -300) -- ekranın üstünde ortala dikeyde
-frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 800, 0, 600)
+frame.Position = UDim2.new(0.5, -400, 0.5, -300)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.Position = UDim2.new(0, 0, 0, 0)
+title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Text = "🔎 Remote Event & Function Finder"
+title.Text = "ReplicatedStorage Event Bulucu"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 28
-title.BorderSizePixel = 0
+title.TextSize = 22
 
-local scrollingFrame = Instance.new("ScrollingFrame", frame)
-scrollingFrame.Size = UDim2.new(1, -20, 1, -70)
-scrollingFrame.Position = UDim2.new(0, 10, 0, 60)
-scrollingFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-scrollingFrame.BorderSizePixel = 0
-scrollingFrame.ScrollBarThickness = 8
-scrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Instance.new("UICorner", scrollingFrame)
+local listFrame = Instance.new("ScrollingFrame", frame)
+listFrame.Size = UDim2.new(0, 350, 1, -50)
+listFrame.Position = UDim2.new(0, 20, 0, 50)
+listFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+listFrame.BorderSizePixel = 0
+listFrame.ScrollBarThickness = 6
+local listLayout = Instance.new("UIListLayout", listFrame)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 5)
 
-local layout = Instance.new("UIListLayout", scrollingFrame)
-layout.Padding = UDim.new(0, 8)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
+local selectedLabel = Instance.new("TextLabel", frame)
+selectedLabel.Size = UDim2.new(0, 400, 0, 40)
+selectedLabel.Position = UDim2.new(0, 400, 0, 60)
+selectedLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+selectedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+selectedLabel.Font = Enum.Font.GothamBold
+selectedLabel.TextSize = 18
+selectedLabel.Text = "Seçilen Event: Yok"
+selectedLabel.TextWrapped = true
 
-local function listRemoteObjects(parent)
-	for _, child in pairs(scrollingFrame:GetChildren()) do
-		if child:IsA("TextLabel") then
-			child:Destroy()
-		end
-	end
+local fireBtn = Instance.new("TextButton", frame)
+fireBtn.Size = UDim2.new(0, 200, 0, 40)
+fireBtn.Position = UDim2.new(0, 400, 0, 110)
+fireBtn.Text = "Event'i Sunucuya Gönder"
+fireBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+fireBtn.TextColor3 = Color3.new(1,1,1)
+fireBtn.Font = Enum.Font.GothamBold
+fireBtn.TextSize = 18
+fireBtn.Visible = false
 
-	local function recurse(obj)
-		for _, child in pairs(obj:GetChildren()) do
-			if child:IsA("RemoteEvent") then
-				local label = Instance.new("TextLabel")
-				label.Size = UDim2.new(1, -15, 0, 30)
-				label.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-				label.TextColor3 = Color3.new(1, 1, 1)
-				label.Text = "[RemoteEvent]  " .. child:GetFullName()
-				label.Font = Enum.Font.Gotham
-				label.TextSize = 16
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.BorderSizePixel = 0
-				label.Parent = scrollingFrame
-			elseif child:IsA("RemoteFunction") then
-				local label = Instance.new("TextLabel")
-				label.Size = UDim2.new(1, -15, 0, 30)
-				label.BackgroundColor3 = Color3.fromRGB(180, 130, 70)
-				label.TextColor3 = Color3.new(1, 1, 1)
-				label.Text = "[RemoteFunction]  " .. child:GetFullName()
-				label.Font = Enum.Font.Gotham
-				label.TextSize = 16
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.BorderSizePixel = 0
-				label.Parent = scrollingFrame
-			end
+local selectedEventName = nil
 
-			recurse(child)
-		end
-	end
-
-	recurse(parent)
+local function trimReplicatedStoragePrefix(name)
+    -- Eğer isim "ReplicatedStorage." ile başlıyorsa onu kes
+    local prefix = "ReplicatedStorage."
+    if string.sub(name, 1, #prefix) == prefix then
+        return string.sub(name, #prefix + 1)
+    else
+        return name
+    end
 end
 
-listRemoteObjects(ReplicatedStorage)
+local function populateEventList()
+    for _, child in pairs(listFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    for _, obj in pairs(ReplicatedStorage:GetChildren()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            local displayName = trimReplicatedStoragePrefix("ReplicatedStorage." .. obj.Name)
+            
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 35)
+            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 16
+            btn.Text = displayName
+            btn.Parent = listFrame
+
+            btn.MouseButton1Click:Connect(function()
+                selectedEventName = obj.Name
+                selectedLabel.Text = "Seçilen Event: " .. obj.Name
+                fireBtn.Visible = true
+            end)
+        end
+    end
+end
+
+fireBtn.MouseButton1Click:Connect(function()
+    if selectedEventName then
+        local eventToFire = ReplicatedStorage:FindFirstChild(selectedEventName)
+        if eventToFire and eventToFire:IsA("RemoteEvent") then
+            eventToFire:FireServer()
+            print("Event tetiklendi: " .. selectedEventName)
+        else
+            warn("Seçilen event bulunamadı veya RemoteEvent değil.")
+        end
+    end
+end)
+
+populateEventList()
