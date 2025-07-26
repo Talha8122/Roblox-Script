@@ -1,115 +1,110 @@
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
+-- Kullanıcılar için gösterilecek event isimleri (örnek)
+local eventNameForEachPlayer = {} -- key: player, value: eventname
+
+-- Örnek sabit event isimleri (dilersen dinamik yapabilirsin)
+local defaultEventName = "KickPlayer" 
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CustomEventTriggerGui"
+screenGui.Name = "UserEventGui"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 400, 0, 500)
-frame.Position = UDim2.new(0.5, -200, 0.5, -250)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-Instance.new("UICorner", frame)
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Parent = screenGui
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Text = "📋 Event Trigger Panel"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 24
-title.BorderSizePixel = 0
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+titleLabel.Text = "Kullanıcılar ve Eventler"
+titleLabel.TextColor3 = Color3.new(1,1,1)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 24
+titleLabel.Parent = mainFrame
 
-local scrollingFrame = Instance.new("ScrollingFrame", frame)
+local scrollingFrame = Instance.new("ScrollingFrame")
 scrollingFrame.Size = UDim2.new(1, -20, 1, -50)
 scrollingFrame.Position = UDim2.new(0, 10, 0, 45)
 scrollingFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 scrollingFrame.BorderSizePixel = 0
-scrollingFrame.ScrollBarThickness = 6
-scrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Instance.new("UICorner", scrollingFrame)
+scrollingFrame.ScrollBarThickness = 8
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.Parent = mainFrame
 
-local layout = Instance.new("UIListLayout", scrollingFrame)
-layout.Padding = UDim.new(0, 8)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 5)
+listLayout.Parent = scrollingFrame
 
--- Her oyuncu için buton ve event name inputu oluştur
-local function createPlayerEntry(player)
+-- Satır oluşturma fonksiyonu
+local function createPlayerRow(player, eventName)
     local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 40)
-    container.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    container.BorderSizePixel = 0
+    container.Size = UDim2.new(1, 0, 0, 30)
+    container.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     container.Parent = scrollingFrame
-    Instance.new("UICorner", container)
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(0.4, 0, 1, 0)
-    nameLabel.Position = UDim2.new(0, 8, 0, 0)
+    nameLabel.Size = UDim2.new(0.5, 0, 1, 0)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = player.Name
     nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.Text = player.Name
     nameLabel.Font = Enum.Font.Gotham
     nameLabel.TextSize = 18
     nameLabel.Parent = container
 
-    local eventInput = Instance.new("TextBox")
-    eventInput.Size = UDim2.new(0.4, -10, 0.6, 0)
-    eventInput.Position = UDim2.new(0.4, 10, 0.2, 0)
-    eventInput.PlaceholderText = "RemoteEvent İsmi (ör. BanPlayer)"
-    eventInput.ClearTextOnFocus = false
-    eventInput.Text = ""
-    eventInput.Font = Enum.Font.Gotham
-    eventInput.TextSize = 16
-    eventInput.Parent = container
-
-    local triggerBtn = Instance.new("TextButton")
-    triggerBtn.Size = UDim2.new(0.15, 0, 0.6, 0)
-    triggerBtn.Position = UDim2.new(0.85, 0, 0.2, 0)
-    triggerBtn.Text = "Gönder"
-    triggerBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    triggerBtn.TextColor3 = Color3.new(1, 1, 1)
-    triggerBtn.Font = Enum.Font.GothamBold
-    triggerBtn.TextSize = 16
-    triggerBtn.Parent = container
-    Instance.new("UICorner", triggerBtn)
-
-    triggerBtn.MouseButton1Click:Connect(function()
-        local eventName = eventInput.Text
-        if eventName and eventName ~= "" then
-            local remoteEvent = ReplicatedStorage:FindFirstChild(eventName)
-            if remoteEvent and remoteEvent:IsA("RemoteEvent") then
-                -- Burada player'i argüman olarak atıyoruz, bazı eventler farklı argüman isteyebilir
-                remoteEvent:FireServer(player)
-            else
-                warn("RemoteEvent bulunamadı: "..eventName)
-            end
-        else
-            warn("Lütfen RemoteEvent ismini girin.")
-        end
-    end)
+    local eventLabel = Instance.new("TextLabel")
+    eventLabel.Size = UDim2.new(0.5, 0, 1, 0)
+    eventLabel.Position = UDim2.new(0.5, 0, 0, 0)
+    eventLabel.BackgroundTransparency = 1
+    eventLabel.TextColor3 = Color3.new(1, 1, 1)
+    eventLabel.Text = eventName or defaultEventName
+    eventLabel.Font = Enum.Font.Gotham
+    eventLabel.TextSize = 18
+    eventLabel.Parent = container
 end
 
--- Listeyi temizleyip tekrar oluştur
-local function refreshPlayerList()
+-- 1 saniyede bir GUI'yi yenileyen fonksiyon
+local function refreshGui()
+    scrollingFrame:ClearAllChildren()
+    listLayout.Parent = scrollingFrame
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            local eventName = eventNameForEachPlayer[player.UserId] or defaultEventName
+            createPlayerRow(player, eventName)
+        end
+    end
+
+    -- CanvasSize ayarla
+    local totalHeight = 0
     for _, child in pairs(scrollingFrame:GetChildren()) do
         if child:IsA("Frame") then
-            child:Destroy()
+            totalHeight = totalHeight + child.Size.Y.Offset + listLayout.Padding.Offset
         end
     end
-    for _, player in pairs(Players:GetPlayers()) do
-        createPlayerEntry(player)
-    end
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
 end
 
-refreshPlayerList()
+-- Örnek: Oyunculara dinamik event atama (dilersen bunu değiştirebilirsin)
+Players.PlayerAdded:Connect(function(player)
+    eventNameForEachPlayer[player.UserId] = math.random(1,2) == 1 and "KickPlayer" or "BanReceived"
+    refreshGui()
+end)
 
--- Oyuncu liste değişikliklerini takip et (oyuncu giriş/çıkış)
-Players.PlayerAdded:Connect(refreshPlayerList)
-Players.PlayerRemoving:Connect(refreshPlayerList)
+Players.PlayerRemoving:Connect(function(player)
+    eventNameForEachPlayer[player.UserId] = nil
+    refreshGui()
+end)
+
+-- Başlangıçta GUI'yi doldur
+refreshGui()
+
+-- 1 saniyede bir güncelle
+while true do
+    refreshGui()
+    task.wait(1)
+end
