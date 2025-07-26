@@ -1,14 +1,14 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local HttpService = game:GetService("HttpService")
 
--- Ana GUI
+-- GUI oluştur
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RemoteEventSender"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = playerGui -- Burada CoreGui yerine PlayerGui kullandık
+screenGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 800, 0, 600)
@@ -20,7 +20,7 @@ mainFrame.Active = true
 mainFrame.Draggable = true
 Instance.new("UICorner", mainFrame)
 
--- Başlık
+-- Başlık çubuğu
 local titleBar = Instance.new("Frame", mainFrame)
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
@@ -49,7 +49,7 @@ closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
--- İçerik alanı
+-- İçerik çerçevesi
 local contentFrame = Instance.new("Frame", mainFrame)
 contentFrame.Size = UDim2.new(1, -20, 1, -60)
 contentFrame.Position = UDim2.new(0, 10, 0, 50)
@@ -121,7 +121,6 @@ dataInput.TextWrapped = true
 dataInput.TextXAlignment = Enum.TextXAlignment.Left
 dataInput.TextYAlignment = Enum.TextYAlignment.Top
 dataInput.PlaceholderText = '{"key": "value"} veya "string"'
-
 Instance.new("UICorner", dataInput)
 
 -- Butonlar çerçevesi
@@ -130,7 +129,6 @@ buttonsFrame.Size = UDim2.new(1, 0, 0, 40)
 buttonsFrame.Position = UDim2.new(0, 0, 0.85, 0)
 buttonsFrame.BackgroundTransparency = 1
 
--- Yenile butonu
 local refreshButton = Instance.new("TextButton", buttonsFrame)
 refreshButton.Size = UDim2.new(0.2, 0, 1, 0)
 refreshButton.Position = UDim2.new(0.1, 0, 0, 0)
@@ -141,7 +139,6 @@ refreshButton.Font = Enum.Font.GothamBold
 refreshButton.TextSize = 16
 Instance.new("UICorner", refreshButton)
 
--- Gönder butonu
 local sendButton = Instance.new("TextButton", buttonsFrame)
 sendButton.Size = UDim2.new(0.2, 0, 1, 0)
 sendButton.Position = UDim2.new(0.7, 0, 0, 0)
@@ -156,7 +153,7 @@ Instance.new("UICorner", sendButton)
 local selectedPlayer = nil
 local selectedEvent = nil
 
--- Kullanıcı butonu oluşturma fonksiyonu
+-- Kullanıcı butonu oluşturma
 local function createUserButton(player)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -10, 0, 40)
@@ -179,7 +176,7 @@ local function createUserButton(player)
     end)
 end
 
--- Event butonu oluşturma fonksiyonu
+-- Event butonu oluşturma
 local function createEventButton(eventName)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -10, 0, 40)
@@ -202,7 +199,7 @@ local function createEventButton(eventName)
     end)
 end
 
--- Kullanıcı listesini yenileme fonksiyonu
+-- Kullanıcı listesini yenile
 local function refreshUsers()
     for _, child in ipairs(usersScrolling:GetChildren()) do
         if child:IsA("TextButton") then
@@ -214,7 +211,7 @@ local function refreshUsers()
     end
 end
 
--- Event listesini yenileme fonksiyonu
+-- Event listesini yenile
 local function refreshEvents()
     for _, child in ipairs(eventsScrolling:GetChildren()) do
         if child:IsA("TextButton") then
@@ -252,7 +249,7 @@ local function sendData()
     end)
 
     if not success then
-        data = dataText -- JSON değilse string olarak al
+        data = dataText
     end
 
     local eventPath = selectedEvent:split(".")
@@ -279,6 +276,6 @@ end)
 
 sendButton.MouseButton1Click:Connect(sendData)
 
--- Başlangıç listelerini yükle
+-- Başlangıçta listeyi doldur
 refreshUsers()
 refreshEvents()
