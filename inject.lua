@@ -8,7 +8,7 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 800, 0, 600)
+frame.Size = UDim2.new(0, 1000, 0, 600)
 frame.Position = UDim2.new(0, 0, 0.5, -300) -- ekranın üstünde ortala dikeyde
 frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 frame.BorderSizePixel = 0
