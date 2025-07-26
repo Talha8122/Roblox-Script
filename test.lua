@@ -3,26 +3,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
 
--- GUI oluşturma (Delta uyumlu)
+-- GUI oluşturma
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RemoteEventSender_Delta"
+screenGui.Name = "RemoteEventSenderPro"
 screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = CoreGui
 
--- Ana frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 650, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -325, 0.5, -250)
+mainFrame.Size = UDim2.new(0, 700, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -350, 0.5, -275)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 mainFrame.Active = true
 mainFrame.Draggable = true
-
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 8)
-uiCorner.Parent = mainFrame
+Instance.new("UICorner", mainFrame)
 
 -- Başlık çubuğu
 local titleBar = Instance.new("Frame")
@@ -31,17 +26,16 @@ titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 titleBar.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -80, 1, 0)
+titleLabel.Size = UDim2.new(1, -100, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleLabel.Text = "🚀 Remote Event Sender"
+titleLabel.Text = "🚀 Remote Event Sender Pro"
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 18
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
 
--- Kapatma butonu
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 30, 0, 30)
 closeButton.Position = UDim2.new(1, -35, 0.5, -15)
@@ -51,10 +45,7 @@ closeButton.Text = "X"
 closeButton.Font = Enum.Font.GothamBold
 closeButton.TextSize = 16
 closeButton.Parent = titleBar
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(1, 0)
-closeCorner.Parent = closeButton
+Instance.new("UICorner", closeButton)
 
 closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
@@ -67,7 +58,7 @@ contentFrame.Position = UDim2.new(0, 10, 0, 50)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
--- Kullanıcı listesi
+-- Kullanıcılar listesi
 local usersLabel = Instance.new("TextLabel")
 usersLabel.Size = UDim2.new(0.3, -10, 0, 25)
 usersLabel.Position = UDim2.new(0, 0, 0, 0)
@@ -86,22 +77,19 @@ usersScrolling.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 usersScrolling.ScrollBarThickness = 6
 usersScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
 usersScrolling.Parent = contentFrame
-
-local usersCorner = Instance.new("UICorner")
-usersCorner.CornerRadius = UDim.new(0, 6)
-usersCorner.Parent = usersScrolling
+Instance.new("UICorner", usersScrolling)
 
 local usersListLayout = Instance.new("UIListLayout")
 usersListLayout.Padding = UDim.new(0, 5)
 usersListLayout.Parent = usersScrolling
 
--- Event input
+-- Event input with hybrid selection
 local eventsLabel = Instance.new("TextLabel")
 eventsLabel.Size = UDim2.new(0.4, -10, 0, 25)
 eventsLabel.Position = UDim2.new(0.32, 10, 0, 0)
 eventsLabel.BackgroundTransparency = 1
 eventsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-eventsLabel.Text = "Remote Event Path:"
+eventsLabel.Text = "Remote Event:"
 eventsLabel.Font = Enum.Font.GothamBold
 eventsLabel.TextSize = 14
 eventsLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -114,21 +102,33 @@ eventInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 eventInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 eventInput.Font = Enum.Font.Gotham
 eventInput.TextSize = 14
-eventInput.PlaceholderText = "e.g., Folder.EventName"
+eventInput.PlaceholderText = "Type or select from list"
 eventInput.ClearTextOnFocus = false
 eventInput.Parent = contentFrame
+Instance.new("UICorner", eventInput)
 
-local eventCorner = Instance.new("UICorner")
-eventCorner.CornerRadius = UDim.new(0, 6)
-eventCorner.Parent = eventInput
+-- Event list (shows when typing)
+local eventsScrolling = Instance.new("ScrollingFrame")
+eventsScrolling.Size = UDim2.new(0.4, -10, 0.65, -45)
+eventsScrolling.Position = UDim2.new(0.32, 10, 0, 65)
+eventsScrolling.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+eventsScrolling.ScrollBarThickness = 6
+eventsScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
+eventsScrolling.Visible = false
+eventsScrolling.Parent = contentFrame
+Instance.new("UICorner", eventsScrolling)
 
--- Data input
+local eventsListLayout = Instance.new("UIListLayout")
+eventsListLayout.Padding = UDim.new(0, 5)
+eventsListLayout.Parent = eventsScrolling
+
+-- Veri girişi
 local dataLabel = Instance.new("TextLabel")
 dataLabel.Size = UDim2.new(0.28, -10, 0, 25)
 dataLabel.Position = UDim2.new(0.74, 10, 0, 0)
 dataLabel.BackgroundTransparency = 1
 dataLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-dataLabel.Text = "Data to Send:"
+dataLabel.Text = "Data:"
 dataLabel.Font = Enum.Font.GothamBold
 dataLabel.TextSize = 14
 dataLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -144,12 +144,9 @@ dataInput.TextSize = 14
 dataInput.TextWrapped = true
 dataInput.TextXAlignment = Enum.TextXAlignment.Left
 dataInput.TextYAlignment = Enum.TextYAlignment.Top
-dataInput.PlaceholderText = '{"key":"value"} or "string"'
+dataInput.PlaceholderText = '{"key":"value"} or any value'
 dataInput.Parent = contentFrame
-
-local dataCorner = Instance.new("UICorner")
-dataCorner.CornerRadius = UDim.new(0, 6)
-dataCorner.Parent = dataInput
+Instance.new("UICorner", dataInput)
 
 -- Butonlar
 local buttonsFrame = Instance.new("Frame")
@@ -167,10 +164,7 @@ refreshButton.Text = "Refresh"
 refreshButton.Font = Enum.Font.GothamBold
 refreshButton.TextSize = 14
 refreshButton.Parent = buttonsFrame
-
-local refreshCorner = Instance.new("UICorner")
-refreshCorner.CornerRadius = UDim.new(0, 6)
-refreshCorner.Parent = refreshButton
+Instance.new("UICorner", refreshButton)
 
 local sendButton = Instance.new("TextButton")
 sendButton.Size = UDim2.new(0.2, 0, 1, 0)
@@ -181,14 +175,13 @@ sendButton.Text = "Send"
 sendButton.Font = Enum.Font.GothamBold
 sendButton.TextSize = 14
 sendButton.Parent = buttonsFrame
+Instance.new("UICorner", sendButton)
 
-local sendCorner = Instance.new("UICorner")
-sendCorner.CornerRadius = UDim.new(0, 6)
-sendCorner.Parent = sendButton
-
--- Fonksiyonlar
+-- Variables
 local selectedPlayer = nil
+local remoteEventsCache = {}
 
+-- Player button creation
 local function createUserButton(player)
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -10, 0, 35)
@@ -198,10 +191,7 @@ local function createUserButton(player)
     button.Font = Enum.Font.Gotham
     button.TextSize = 14
     button.Parent = usersScrolling
-    
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 4)
-    buttonCorner.Parent = button
+    Instance.new("UICorner", button)
 
     button.MouseButton1Click:Connect(function()
         selectedPlayer = player
@@ -214,6 +204,25 @@ local function createUserButton(player)
     end)
 end
 
+-- Event button creation
+local function createEventButton(eventName)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -10, 0, 35)
+    button.BackgroundColor3 = Color3.fromRGB(60, 80, 60)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = eventName
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 14
+    button.Parent = eventsScrolling
+    Instance.new("UICorner", button)
+
+    button.MouseButton1Click:Connect(function()
+        eventInput.Text = eventName
+        eventsScrolling.Visible = false
+    end)
+end
+
+-- Refresh player list
 local function refreshPlayers()
     for _, child in ipairs(usersScrolling:GetChildren()) do
         if child:IsA("TextButton") then
@@ -226,7 +235,58 @@ local function refreshPlayers()
     end
 end
 
-local function sendRemoteEvent()
+-- Scan and cache remote events
+local function refreshEvents()
+    remoteEventsCache = {}
+    for _, child in ipairs(eventsScrolling:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    local function scanFolder(folder, path)
+        for _, item in ipairs(folder:GetChildren()) do
+            if item:IsA("RemoteEvent") then
+                local fullPath = path .. item.Name
+                table.insert(remoteEventsCache, fullPath)
+                createEventButton(fullPath)
+            elseif item:IsA("Folder") then
+                scanFolder(item, path .. item.Name .. ".")
+            end
+        end
+    end
+
+    scanFolder(ReplicatedStorage, "")
+end
+
+-- Show matching event suggestions
+local function showEventSuggestions(text)
+    if text == "" then
+        for _, child in ipairs(eventsScrolling:GetChildren()) do
+            child.Visible = true
+        end
+        return
+    end
+    
+    local textLower = string.lower(text)
+    local anyVisible = false
+    
+    for _, child in ipairs(eventsScrolling:GetChildren()) do
+        if child:IsA("TextButton") then
+            if string.find(string.lower(child.Text), textLower, 1, true) then
+                child.Visible = true
+                anyVisible = true
+            else
+                child.Visible = false
+            end
+        end
+    end
+    
+    eventsScrolling.Visible = anyVisible
+end
+
+-- Send data to player
+local function sendData()
     if not selectedPlayer then
         warn("Please select a player first!")
         return
@@ -244,9 +304,14 @@ local function sendRemoteEvent()
     end)
     
     if not success then
-        data = dataText
+        -- Try to evaluate as Lua code if not JSON
+        success, data = pcall(loadstring("return "..dataText))
+        if not success then
+            data = dataText -- Fallback to raw string
+        end
     end
 
+    -- Find the remote event
     local pathParts = eventPath:split(".")
     local current = ReplicatedStorage
     for _, name in ipairs(pathParts) do
@@ -263,12 +328,32 @@ local function sendRemoteEvent()
     end
 end
 
--- Buton bağlantıları
-refreshButton.MouseButton1Click:Connect(refreshPlayers)
-sendButton.MouseButton1Click:Connect(sendRemoteEvent)
+-- UI Connections
+eventInput.Focused:Connect(function()
+    eventsScrolling.Visible = true
+    showEventSuggestions(eventInput.Text)
+end)
 
--- Başlangıçta oyuncuları yükle
+eventInput.FocusLost:Connect(function()
+    task.wait(0.2) -- Allow time for selection
+    eventsScrolling.Visible = false
+end)
+
+eventInput:GetPropertyChangedSignal("Text"):Connect(function()
+    showEventSuggestions(eventInput.Text)
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+refreshButton.MouseButton1Click:Connect(function()
+    refreshPlayers()
+    refreshEvents()
+end)
+
+sendButton.MouseButton1Click:Connect(sendData)
+
+-- Initialize
 refreshPlayers()
-
--- GUI'yi göster
-screenGui.Enabled = true
+refreshEvents()
