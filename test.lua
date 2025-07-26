@@ -79,9 +79,14 @@ local function createToolButton(tool, player)
     button.TextSize = 18
 
     button.MouseButton1Click:Connect(function()
-        local remote = tool:FindFirstChild("ClientEvent")
-        if remote and remote:IsA("RemoteEvent") then
-            remote:FireServer("BanReceived", {}) -- burayı oyun sistemine göre düzenle
+        if tool and tool.Parent then
+            local remote = tool:FindFirstChild("ClientEvent")
+            if remote then
+                remote:FireServer("BanReceived", {
+                    reason = "Exploit",
+                    duration = 30
+                })
+            end
         end
     end)
 
