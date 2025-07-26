@@ -1,129 +1,123 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
-local cg = game:GetService("CoreGui")
 
--- Temizle varsa önce (isteğe bağlı)
-local existingGui = cg:FindFirstChild("WeaponRemoverGui")
-if existingGui then
-    existingGui:Destroy()
-end
+-- Serverda olması gereken RemoteEvents
+local KickEvent = ReplicatedStorage:WaitForChild("KickEvent")
+local BanEvent = ReplicatedStorage:WaitForChild("BanEvent")
 
--- GUI oluştur
+-- GUI Oluşturma
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WeaponRemoverGui"
+screenGui.Name = "AdminKickBanGui"
 screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-screenGui.Parent = cg
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Size = UDim2.new(0, 300, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
 mainFrame.Active = true
 mainFrame.Draggable = true
-mainFrame.Parent = screenGui
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-titleLabel.Text = "Weapon Remover"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Text = "Admin Kick/Ban Paneli"
+titleLabel.TextColor3 = Color3.new(1,1,1)
 titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.TextSize = 20
+titleLabel.TextSize = 24
 titleLabel.Parent = mainFrame
 
-local scrollingFrame = Instance.new("ScrollingFrame")
-scrollingFrame.Size = UDim2.new(1, -20, 1, -50)
-scrollingFrame.Position = UDim2.new(0, 10, 0, 45)
-scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollingFrame.ScrollBarThickness = 8
-scrollingFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-scrollingFrame.BorderSizePixel = 0
-scrollingFrame.Parent = mainFrame
+-- Oyuncu Listesi için ScrollingFrame
+local playerListFrame = Instance.new("ScrollingFrame")
+playerListFrame.Size = UDim2.new(1, -20, 0, 300)
+playerListFrame.Position = UDim2.new(0, 10, 0, 50)
+playerListFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+playerListFrame.BorderSizePixel = 0
+playerListFrame.ScrollBarThickness = 8
+playerListFrame.Parent = mainFrame
 
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 5)
-listLayout.Parent = scrollingFrame
+listLayout.Parent = playerListFrame
 
--- RemoteEvent (Sunucu ile iletişim için)
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local removeToolEvent = ReplicatedStorage:FindFirstChild("RemoveToolEvent")
+-- Kick ve Ban butonları
+local kickButton = Instance.new("TextButton")
+kickButton.Size = UDim2.new(0.45, 0, 0, 40)
+kickButton.Position = UDim2.new(0.05, 0, 1, -45)
+kickButton.Text = "Kick"
+kickButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+kickButton.TextColor3 = Color3.new(1,1,1)
+kickButton.Font = Enum.Font.SourceSansBold
+kickButton.TextSize = 20
+kickButton.Parent = mainFrame
 
--- Araç silme isteği gönder
-local function sendRemoveRequest(playerName, toolName)
-    if removeToolEvent then
-        removeToolEvent:FireServer(playerName, toolName)
-    else
-        warn("RemoveToolEvent yok!")
-    end
-end
+local banButton = Instance.new("TextButton")
+banButton.Size = UDim2.new(0.45, 0, 0, 40)
+banButton.Position = UDim2.new(0.5, 0, 1, -45)
+banButton.Text = "Ban"
+banButton.BackgroundColor3 = Color3.fromRGB(50, 50, 200)
+banButton.TextColor3 = Color3.new(1,1,1)
+banButton.Font = Enum.Font.SourceSansBold
+banButton.TextSize = 20
+banButton.Parent = mainFrame
 
--- Buton oluştur
-local function createToolButton(tool, ownerPlayer)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 30)
-    btn.Text = ownerPlayer.Name .. " - " .. tool.Name
-    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.SourceSans
-    btn.TextSize = 18
-    btn.Parent = scrollingFrame
+-- Seçilen oyuncu
+local selectedPlayer = nil
 
-    btn.MouseButton1Click:Connect(function()
-        sendRemoveRequest(ownerPlayer.Name, tool.Name)
-    end)
-end
-
--- Listeyi güncelle
-local function updateList()
-    -- Önceki butonları temizle
-    for _, child in pairs(scrollingFrame:GetChildren()) do
+local function updatePlayerButtons()
+    -- Önce listeyi temizle
+    for _, child in ipairs(playerListFrame:GetChildren()) do
         if child:IsA("TextButton") then
             child:Destroy()
         end
     end
-
-    for _, plr in pairs(Players:GetPlayers()) do
-        -- Backpack araçları
-        for _, tool in pairs(plr.Backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                createToolButton(tool, plr)
-            end
-        end
-        -- Karakter üzerindeki araçlar
-        if plr.Character then
-            for _, tool in pairs(plr.Character:GetChildren()) do
-                if tool:IsA("Tool") then
-                    createToolButton(tool, plr)
+    
+    -- Oyuncuları listele
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= player then -- Kendini listeleme
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            btn.TextColor3 = Color3.new(1,1,1)
+            btn.Font = Enum.Font.SourceSans
+            btn.TextSize = 18
+            btn.Text = plr.Name
+            btn.Parent = playerListFrame
+            
+            btn.MouseButton1Click:Connect(function()
+                -- Önce diğer seçilenlerin rengini sıfırla
+                for _, otherBtn in ipairs(playerListFrame:GetChildren()) do
+                    if otherBtn:IsA("TextButton") then
+                        otherBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    end
                 end
-            end
+                btn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                selectedPlayer = plr
+            end)
         end
     end
+end
 
-    -- Scroll içerik yüksekliği ayarla
-    local totalHeight = 0
-    for _, btn in pairs(scrollingFrame:GetChildren()) do
-        if btn:IsA("TextButton") then
-            totalHeight = totalHeight + btn.Size.Y.Offset + listLayout.Padding.Offset
-        end
+kickButton.MouseButton1Click:Connect(function()
+    if selectedPlayer then
+        KickEvent:FireServer(selectedPlayer.Name)
+    else
+        warn("Bir oyuncu seçmelisin!")
     end
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-end
+end)
 
--- Listenin güncellenmesi için eventler
-Players.PlayerAdded:Connect(updateList)
-Players.PlayerRemoving:Connect(updateList)
-for _, plr in pairs(Players:GetPlayers()) do
-    plr.Backpack.ChildAdded:Connect(updateList)
-    plr.Backpack.ChildRemoved:Connect(updateList)
-end
+banButton.MouseButton1Click:Connect(function()
+    if selectedPlayer then
+        BanEvent:FireServer(selectedPlayer.Name)
+    else
+        warn("Bir oyuncu seçmelisin!")
+    end
+end)
 
--- Başlangıçta listeyi güncelle
-updateList()
+Players.PlayerAdded:Connect(updatePlayerButtons)
+Players.PlayerRemoving:Connect(updatePlayerButtons)
 
--- Listenin düzenli güncellenmesi (opsiyonel)
-while true do
-    task.wait(2)
-    updateList()
-end
+updatePlayerButtons()
