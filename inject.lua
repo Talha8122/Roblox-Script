@@ -1,112 +1,124 @@
-pcall(function() game.CoreGui:FindFirstChild("FakeAdminGUI"):Destroy() end)
-
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
 
--- RemoteEvent'leri bul
-local KickEvent = ReplicatedStorage:FindFirstChild("KickPlayerEvent")
-local BanEvent = ReplicatedStorage:FindFirstChild("BanPlayerEvent")
-
-if not KickEvent or not BanEvent then
-	warn("Kick veya Ban eventi bulunamadı!")
-	return
-end
-
--- GUI Başlat
-local gui = Instance.new("ScreenGui", game.CoreGui)
+-- GUI Oluştur
+local gui = Instance.new("ScreenGui", CoreGui)
 gui.Name = "FakeAdminGUI"
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 400, 0, 500)
-frame.Position = UDim2.new(1, -410, 0.5, -250)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Size = UDim2.new(0, 400, 0, 300)
+frame.Position = UDim2.new(0.5, -200, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-Instance.new("UICorner", frame)
+
+local uicorner = Instance.new("UICorner", frame)
+uicorner.CornerRadius = UDim.new(0, 10)
 
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "🛡️ Yönetici Paneli"
-title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-title.TextColor3 = Color3.new(1, 1, 1)
+title.Text = "Admin Kontrol Paneli"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-Instance.new("UICorner", title)
+title.TextSize = 16
 
 local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1, -20, 1, -50)
-scroll.Position = UDim2.new(0, 10, 0, 45)
+scroll.Size = UDim2.new(1, -10, 1, -50)
+scroll.Position = UDim2.new(0, 5, 0, 45)
 scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 scroll.BackgroundTransparency = 1
-scroll.ScrollBarThickness = 6
+scroll.BorderSizePixel = 0
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarThickness = 5
 
-local UIList = Instance.new("UIListLayout", scroll)
-UIList.Padding = UDim.new(0, 6)
+local UIListLayout = Instance.new("UIListLayout", scroll)
+UIListLayout.Padding = UDim.new(0, 5)
 
--- Yenileme fonksiyonu
-local function refreshList()
-	scroll:ClearAllChildren()
-	UIList.Parent = scroll
-	for _, plr in pairs(Players:GetPlayers()) do
-		if plr ~= LocalPlayer then
-			local container = Instance.new("Frame")
-			container.Size = UDim2.new(1, 0, 0, 40)
-			container.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-			Instance.new("UICorner", container)
+-- Auto Delete Sistemi
+local autoDeleteList = {}
 
-			local nameLabel = Instance.new("TextLabel", container)
-			nameLabel.Text = plr.Name
-			nameLabel.Size = UDim2.new(0.5, -10, 1, 0)
-			nameLabel.BackgroundTransparency = 1
-			nameLabel.TextColor3 = Color3.new(1,1,1)
-			nameLabel.Font = Enum.Font.Gotham
-			nameLabel.TextSize = 16
-			nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+-- Oyuncu Butonlarını Oluştur
+function createPlayerButton(plr)
+	local container = Instance.new("Frame", scroll)
+	container.Size = UDim2.new(1, -10, 0, 40)
+	container.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	container.BorderSizePixel = 0
 
-			local kickButton = Instance.new("TextButton", container)
-			kickButton.Text = "🚫"
-			kickButton.Size = UDim2.new(0, 40, 0, 30)
-			kickButton.Position = UDim2.new(0.6, 0, 0.1, 0)
-			kickButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-			kickButton.TextColor3 = Color3.new(1,1,1)
-			kickButton.Font = Enum.Font.GothamBold
-			kickButton.TextSize = 18
-			Instance.new("UICorner", kickButton)
+	local nameLabel = Instance.new("TextLabel", container)
+	nameLabel.Size = UDim2.new(0.5, 0, 1, 0)
+	nameLabel.Text = plr.Name
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.Gotham
+	nameLabel.TextSize = 14
 
-			local banButton = Instance.new("TextButton", container)
-			banButton.Text = "🔨"
-			banButton.Size = UDim2.new(0, 40, 0, 30)
-			banButton.Position = UDim2.new(0.75, 0, 0.1, 0)
-			banButton.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-			banButton.TextColor3 = Color3.new(1,1,1)
-			banButton.Font = Enum.Font.GothamBold
-			banButton.TextSize = 18
-			Instance.new("UICorner", banButton)
+	local kickButton = Instance.new("TextButton", container)
+	kickButton.Size = UDim2.new(0.2, 0, 1, 0)
+	kickButton.Position = UDim2.new(0.5, 0, 0, 0)
+	kickButton.Text = "Kick"
+	kickButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	kickButton.Font = Enum.Font.GothamBold
+	kickButton.TextColor3 = Color3.new(1, 1, 1)
+	kickButton.TextSize = 13
+	kickButton.MouseButton1Click:Connect(function()
+		plr:Kick("Admin tarafından atıldınız.")
+	end)
 
-			kickButton.MouseButton1Click:Connect(function()
-				KickEvent:FireServer(plr.Name)
-			end)
+	local banButton = Instance.new("TextButton", container)
+	banButton.Size = UDim2.new(0.2, -5, 1, 0)
+	banButton.Position = UDim2.new(0.7, 5, 0, 0)
+	banButton.Text = "Ban (Fake)"
+	banButton.BackgroundColor3 = Color3.fromRGB(255, 180, 80)
+	banButton.Font = Enum.Font.GothamBold
+	banButton.TextColor3 = Color3.new(1, 1, 1)
+	banButton.TextSize = 13
+	banButton.MouseButton1Click:Connect(function()
+		gui:Destroy()
+		LocalPlayer:Kick("Hile tespit edildi. (Banlanmış gibi gösterildi)")
+	end)
 
-			banButton.MouseButton1Click:Connect(function()
-				BanEvent:FireServer(plr.Name)
-			end)
+	local autoDeleteToggle = Instance.new("TextButton", container)
+	autoDeleteToggle.Size = UDim2.new(0.1, -5, 1, 0)
+	autoDeleteToggle.Position = UDim2.new(0.9, 0, 0, 0)
+	autoDeleteToggle.Text = "🗑️"
+	autoDeleteToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	autoDeleteToggle.Font = Enum.Font.Gotham
+	autoDeleteToggle.TextColor3 = Color3.new(1, 1, 1)
+	autoDeleteToggle.TextSize = 14
 
-			nameLabel.Parent = container
-			kickButton.Parent = container
-			banButton.Parent = container
-			container.Parent = scroll
+	local toggled = false
+	autoDeleteToggle.MouseButton1Click:Connect(function()
+		toggled = not toggled
+		if toggled then
+			table.insert(autoDeleteList, plr)
+			autoDeleteToggle.Text = "❌"
+		else
+			for i, p in pairs(autoDeleteList) do
+				if p == plr then
+					table.remove(autoDeleteList, i)
+					break
+				end
+			end
+			autoDeleteToggle.Text = "🗑️"
 		end
-	end
-	scroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 10)
+	end)
 end
 
-refreshList()
+-- Oyuncuları Yenile
+function refreshPlayers()
+	scroll:ClearAllChildren()
+	UIListLayout.Parent = scroll
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			createPlayerButton(plr)
+		end
+	end
+end
 
--- Otomatik güncelleme
-while gui.Parent do
-	refreshList()
+-- 10 saniyede bir yenile
+while true do
+	refreshPlayers()
 	wait(10)
 end
