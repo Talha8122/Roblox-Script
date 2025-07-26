@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "RemoteEventFinderGui"
@@ -7,8 +8,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 600, 0, 600)
-frame.Position = UDim2.new(0.5, -300, 0.5, -300)
+frame.Size = UDim2.new(1, 0, 0, 600) -- genişlik %100, yükseklik 600px
+frame.Position = UDim2.new(0, 0, 0.5, -300) -- ekranın üstünde ortala dikeyde
 frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -17,6 +18,7 @@ Instance.new("UICorner", frame)
 
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.new(1, 0, 0, 50)
+title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Text = "🔎 Remote Event & Function Finder"
@@ -37,9 +39,7 @@ local layout = Instance.new("UIListLayout", scrollingFrame)
 layout.Padding = UDim.new(0, 8)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Temizleme ve Listeleme Fonksiyonu
 local function listRemoteObjects(parent)
-	-- Önceki listeyi temizle
 	for _, child in pairs(scrollingFrame:GetChildren()) do
 		if child:IsA("TextLabel") then
 			child:Destroy()
@@ -51,7 +51,7 @@ local function listRemoteObjects(parent)
 			if child:IsA("RemoteEvent") then
 				local label = Instance.new("TextLabel")
 				label.Size = UDim2.new(1, -15, 0, 30)
-				label.BackgroundColor3 = Color3.fromRGB(70, 130, 180) -- Mavi
+				label.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
 				label.TextColor3 = Color3.new(1, 1, 1)
 				label.Text = "[RemoteEvent]  " .. child:GetFullName()
 				label.Font = Enum.Font.Gotham
@@ -62,7 +62,7 @@ local function listRemoteObjects(parent)
 			elseif child:IsA("RemoteFunction") then
 				local label = Instance.new("TextLabel")
 				label.Size = UDim2.new(1, -15, 0, 30)
-				label.BackgroundColor3 = Color3.fromRGB(180, 130, 70) -- Turuncu
+				label.BackgroundColor3 = Color3.fromRGB(180, 130, 70)
 				label.TextColor3 = Color3.new(1, 1, 1)
 				label.Text = "[RemoteFunction]  " .. child:GetFullName()
 				label.Font = Enum.Font.Gotham
