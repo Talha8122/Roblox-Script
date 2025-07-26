@@ -1,1 +1,191 @@
+--[[
+  Gelişmiş Envanter Yöneticisi - Ekleme/Silme Sistemi
+  LocalScript versiyonu (PlayerGui)
+  Özellikler:
+  - Oyuncuların envanter eşyalarını listeler (Backpack + Character)
+  - Eşya ekleme/silme butonları
+  - Dinamik GUI güncellemesi
+]]
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- GUI OLUŞTUR
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "InventoryManager"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = PlayerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 350, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+titleLabel.Text = "Eşya Yöneticisi v2.0"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 20
+titleLabel.Parent = mainFrame
+
+-- EKLEME BÖLÜMÜ
+local addFrame = Instance.new("Frame")
+addFrame.Size = UDim2.new(1, -10, 0, 80)
+addFrame.Position = UDim2.new(0, 5, 0, 45)
+addFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+addFrame.Parent = mainFrame
+
+local playerNameBox = Instance.new("TextBox")
+playerNameBox.Size = UDim2.new(0.5, -5, 0, 30)
+playerNameBox.Position = UDim2.new(0, 0, 0, 5)
+playerNameBox.PlaceholderText = "Oyuncu Adı"
+playerNameBox.Parent = addFrame
+
+local itemNameBox = Instance.new("TextBox")
+itemNameBox.Size = UDim2.new(0.5, -5, 0, 30)
+itemNameBox.Position = UDim2.new(0.5, 5, 0, 5)
+itemNameBox.PlaceholderText = "Eşya Adı"
+itemNameBox.Parent = addFrame
+
+local addButton = Instance.new("TextButton")
+addButton.Size = UDim2.new(1, 0, 0, 30)
+addButton.Position = UDim2.new(0, 0, 0, 40)
+addButton.Text = "EŞYA EKLE"
+addButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+addButton.TextColor3 = Color3.new(1,1,1)
+addButton.Parent = addFrame
+
+-- LİSTELEME BÖLÜMÜ
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Size = UDim2.new(1, -10, 1, -140)
+scrollingFrame.Position = UDim2.new(0, 5, 0, 130)
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.ScrollBarThickness = 8
+scrollingFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+scrollingFrame.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 5)
+listLayout.Parent = scrollingFrame
+
+-- EŞYA SİLME
+local function removeItem(playerName, itemName)
+	local target = Players:FindFirstChild(playerName)
+	if not target then return end
+
+	-- Backpack'te
+	for _, tool in pairs(target.Backpack:GetChildren()) do
+		if tool:IsA("Tool") and tool.Name == itemName then
+			tool:Destroy()
+		end
+	end
+
+	-- Character'ta
+	if target.Character then
+		for _, tool in pairs(target.Character:GetDescendants()) do
+			if tool:IsA("Tool") and tool.Name == itemName then
+				tool:Destroy()
+			end
+		end
+	end
+
+	print(playerName .. "'dan " .. itemName .. " silindi!")
+end
+
+-- EŞYA EKLEME
+local function addItem(playerName, itemName)
+	local target = Players:FindFirstChild(playerName)
+	if not target then return end
+
+	local newTool = Instance.new("Tool")
+	newTool.Name = itemName
+	newTool.RequiresHandle = false
+	newTool.CanBeDropped = true
+	newTool.Parent = target:FindFirstChild("Backpack") or target.Backpack
+
+	print(playerName .. "'a " .. itemName .. " eklendi!")
+end
+
+-- BUTON OLUŞTUR
+local function createItemButton(targetPlayer, tool)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 0, 30)
+	button.Text = targetPlayer.Name .. " - " .. tool.Name
+	button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	button.TextColor3 = Color3.new(1,1,1)
+
+	button.MouseButton1Click:Connect(function()
+		removeItem(targetPlayer.Name, tool.Name)
+		button:Destroy()
+	end)
+
+	button.Parent = scrollingFrame
+end
+
+-- ENVANTERİ YENİLE
+local function updateList()
+	for _, c in pairs(scrollingFrame:GetChildren()) do
+		if c:IsA("TextButton") then
+			c:Destroy()
+		end
+	end
+
+	for _, targetPlayer in pairs(Players:GetPlayers()) do
+		for _, tool in pairs(targetPlayer.Backpack:GetChildren()) do
+			if tool:IsA("Tool") then
+				createItemButton(targetPlayer, tool)
+			end
+		end
+
+		if targetPlayer.Character then
+			for _, tool in pairs(targetPlayer.Character:GetDescendants()) do
+				if tool:IsA("Tool") then
+					createItemButton(targetPlayer, tool)
+				end
+			end
+		end
+	end
+
+	-- Scroll güncelle
+	local h = 0
+	for _, b in pairs(scrollingFrame:GetChildren()) do
+		if b:IsA("TextButton") then
+			h = h + b.Size.Y.Offset + listLayout.Padding.Offset
+		end
+	end
+	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, h)
+end
+
+-- EKLEME BUTONU EVENT
+addButton.MouseButton1Click:Connect(function()
+	local pname = playerNameBox.Text
+	local iname = itemNameBox.Text
+
+	if pname ~= "" and iname ~= "" then
+		addItem(pname, iname)
+		updateList()
+	end
+end)
+
+-- GÜNCELLEME EVENTLERİ
+Players.PlayerAdded:Connect(updateList)
+Players.PlayerRemoving:Connect(updateList)
+
+for _, p in pairs(Players:GetPlayers()) do
+	p.Backpack.ChildAdded:Connect(updateList)
+	p.Backpack.ChildRemoved:Connect(updateList)
+end
+
+updateList()
+while task.wait(5) do
+	updateList()
+end
 
