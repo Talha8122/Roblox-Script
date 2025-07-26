@@ -1,123 +1,100 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 
--- Serverda olması gereken RemoteEvents
-local KickEvent = ReplicatedStorage:WaitForChild("KickEvent")
-local BanEvent = ReplicatedStorage:WaitForChild("BanEvent")
+local KickEvent = ReplicatedStorage:WaitForChild("KickPlayerEvent")
+local BanEvent = ReplicatedStorage:WaitForChild("BanPlayerEvent")
 
--- GUI Oluşturma
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AdminKickBanGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- GUI oluştur
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "FakeAdminGUI"
+gui.ResetOnSpawn = false
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
-mainFrame.Active = true
-mainFrame.Draggable = true
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 400, 0, 500)
+frame.Position = UDim2.new(1, -410, 0.5, -250)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame)
 
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 40)
-titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-titleLabel.Text = "Admin Kick/Ban Paneli"
-titleLabel.TextColor3 = Color3.new(1,1,1)
-titleLabel.Font = Enum.Font.SourceSansBold
-titleLabel.TextSize = 24
-titleLabel.Parent = mainFrame
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "🛡️ Yönetici Paneli"
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+Instance.new("UICorner", title)
 
--- Oyuncu Listesi için ScrollingFrame
-local playerListFrame = Instance.new("ScrollingFrame")
-playerListFrame.Size = UDim2.new(1, -20, 0, 300)
-playerListFrame.Position = UDim2.new(0, 10, 0, 50)
-playerListFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-playerListFrame.BorderSizePixel = 0
-playerListFrame.ScrollBarThickness = 8
-playerListFrame.Parent = mainFrame
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.new(1, -20, 1, -50)
+scroll.Position = UDim2.new(0, 10, 0, 45)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 6
 
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 5)
-listLayout.Parent = playerListFrame
+local UIList = Instance.new("UIListLayout", scroll)
+UIList.Padding = UDim.new(0, 6)
 
--- Kick ve Ban butonları
-local kickButton = Instance.new("TextButton")
-kickButton.Size = UDim2.new(0.45, 0, 0, 40)
-kickButton.Position = UDim2.new(0.05, 0, 1, -45)
-kickButton.Text = "Kick"
-kickButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-kickButton.TextColor3 = Color3.new(1,1,1)
-kickButton.Font = Enum.Font.SourceSansBold
-kickButton.TextSize = 20
-kickButton.Parent = mainFrame
+local function refreshList()
+	scroll:ClearAllChildren()
+	UIList.Parent = scroll
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer then
+			local container = Instance.new("Frame")
+			container.Size = UDim2.new(1, 0, 0, 40)
+			container.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+			Instance.new("UICorner", container)
 
-local banButton = Instance.new("TextButton")
-banButton.Size = UDim2.new(0.45, 0, 0, 40)
-banButton.Position = UDim2.new(0.5, 0, 1, -45)
-banButton.Text = "Ban"
-banButton.BackgroundColor3 = Color3.fromRGB(50, 50, 200)
-banButton.TextColor3 = Color3.new(1,1,1)
-banButton.Font = Enum.Font.SourceSansBold
-banButton.TextSize = 20
-banButton.Parent = mainFrame
+			local nameLabel = Instance.new("TextLabel", container)
+			nameLabel.Text = plr.Name
+			nameLabel.Size = UDim2.new(0.5, -10, 1, 0)
+			nameLabel.BackgroundTransparency = 1
+			nameLabel.TextColor3 = Color3.new(1,1,1)
+			nameLabel.Font = Enum.Font.Gotham
+			nameLabel.TextSize = 16
+			nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Seçilen oyuncu
-local selectedPlayer = nil
+			local kickButton = Instance.new("TextButton", container)
+			kickButton.Text = "🚫"
+			kickButton.Size = UDim2.new(0, 40, 0, 30)
+			kickButton.Position = UDim2.new(0.6, 0, 0.1, 0)
+			kickButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+			kickButton.TextColor3 = Color3.new(1,1,1)
+			kickButton.Font = Enum.Font.GothamBold
+			kickButton.TextSize = 18
+			Instance.new("UICorner", kickButton)
 
-local function updatePlayerButtons()
-    -- Önce listeyi temizle
-    for _, child in ipairs(playerListFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
-    
-    -- Oyuncuları listele
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= player then -- Kendini listeleme
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 30)
-            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            btn.TextColor3 = Color3.new(1,1,1)
-            btn.Font = Enum.Font.SourceSans
-            btn.TextSize = 18
-            btn.Text = plr.Name
-            btn.Parent = playerListFrame
-            
-            btn.MouseButton1Click:Connect(function()
-                -- Önce diğer seçilenlerin rengini sıfırla
-                for _, otherBtn in ipairs(playerListFrame:GetChildren()) do
-                    if otherBtn:IsA("TextButton") then
-                        otherBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-                    end
-                end
-                btn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-                selectedPlayer = plr
-            end)
-        end
-    end
+			local banButton = Instance.new("TextButton", container)
+			banButton.Text = "🔨"
+			banButton.Size = UDim2.new(0, 40, 0, 30)
+			banButton.Position = UDim2.new(0.75, 0, 0.1, 0)
+			banButton.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+			banButton.TextColor3 = Color3.new(1,1,1)
+			banButton.Font = Enum.Font.GothamBold
+			banButton.TextSize = 18
+			Instance.new("UICorner", banButton)
+
+			kickButton.MouseButton1Click:Connect(function()
+				KickEvent:FireServer(plr.Name)
+			end)
+
+			banButton.MouseButton1Click:Connect(function()
+				BanEvent:FireServer(plr.Name)
+			end)
+
+			container.Parent = scroll
+		end
+	end
+	scroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 10)
 end
 
-kickButton.MouseButton1Click:Connect(function()
-    if selectedPlayer then
-        KickEvent:FireServer(selectedPlayer.Name)
-    else
-        warn("Bir oyuncu seçmelisin!")
-    end
-end)
+refreshList()
 
-banButton.MouseButton1Click:Connect(function()
-    if selectedPlayer then
-        BanEvent:FireServer(selectedPlayer.Name)
-    else
-        warn("Bir oyuncu seçmelisin!")
-    end
-end)
-
-Players.PlayerAdded:Connect(updatePlayerButtons)
-Players.PlayerRemoving:Connect(updatePlayerButtons)
-
-updatePlayerButtons()
+-- Her 10 saniyede bir güncelle
+while gui.Parent do
+	refreshList()
+	task.wait(10)
+end
