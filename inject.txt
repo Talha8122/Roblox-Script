@@ -1,11 +1,19 @@
+pcall(function() game.CoreGui:FindFirstChild("FakeAdminGUI"):Destroy() end)
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
-local KickEvent = ReplicatedStorage:WaitForChild("KickPlayerEvent")
-local BanEvent = ReplicatedStorage:WaitForChild("BanPlayerEvent")
+-- RemoteEvent'leri bul
+local KickEvent = ReplicatedStorage:FindFirstChild("KickPlayerEvent")
+local BanEvent = ReplicatedStorage:FindFirstChild("BanPlayerEvent")
 
--- GUI oluştur
+if not KickEvent or not BanEvent then
+	warn("Kick veya Ban eventi bulunamadı!")
+	return
+end
+
+-- GUI Başlat
 local gui = Instance.new("ScreenGui", game.CoreGui)
 gui.Name = "FakeAdminGUI"
 gui.ResetOnSpawn = false
@@ -38,6 +46,7 @@ scroll.ScrollBarThickness = 6
 local UIList = Instance.new("UIListLayout", scroll)
 UIList.Padding = UDim.new(0, 6)
 
+-- Yenileme fonksiyonu
 local function refreshList()
 	scroll:ClearAllChildren()
 	UIList.Parent = scroll
@@ -85,6 +94,9 @@ local function refreshList()
 				BanEvent:FireServer(plr.Name)
 			end)
 
+			nameLabel.Parent = container
+			kickButton.Parent = container
+			banButton.Parent = container
 			container.Parent = scroll
 		end
 	end
@@ -93,8 +105,8 @@ end
 
 refreshList()
 
--- Her 10 saniyede bir güncelle
+-- Otomatik güncelleme
 while gui.Parent do
 	refreshList()
-	task.wait(10)
+	wait(10)
 end
