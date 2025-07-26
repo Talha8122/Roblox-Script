@@ -188,4 +188,3 @@ updateList()
 while task.wait(5) do
 	updateList()
 end
-
