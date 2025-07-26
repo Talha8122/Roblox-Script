@@ -1,8 +1,139 @@
+-- EnvanterManager (Local + Server script birleşik)
+-- LocalScript olarak PlayerGui içine koy
+
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
 local player = Players.LocalPlayer
 local PlayerGui = player:WaitForChild("PlayerGui")
 
--- GUI OLUŞTUR
+-- Admin listesi (değiştir)
+local admins = {
+    ["AdminOyuncuAdi"] = true,
+    --["BaşkaAdmin"] = true,
+}
+
+-- RemoteEvent yarat (sadece server tarafında)
+local eventName = "InventoryManagerEvent"
+local event = ReplicatedStorage:FindFirstChild(eventName)
+
+if RunService:IsServer() then
+    if not event then
+        event = Instance.new("RemoteEvent")
+        event.Name = eventName
+        event.Parent = ReplicatedStorage
+    end
+else
+    -- client tarafında bekle
+    while not event do
+        event = ReplicatedStorage:FindFirstChild(eventName)
+        task.wait(0.1)
+    end
+end
+
+-- **SERVER KODU**
+if RunService:IsServer() then
+
+    local autoDeleteEnabled = false
+    local autoDeleteTargets = {}
+
+    local function removeItem(playerName, itemName)
+        local target = Players:FindFirstChild(playerName)
+        if not target then return end
+
+        for _, tool in pairs(target.Backpack:GetChildren()) do
+            if tool:IsA("Tool") and tool.Name == itemName then
+                tool:Destroy()
+            end
+        end
+
+        if target.Character then
+            for _, tool in pairs(target.Character:GetDescendants()) do
+                if tool:IsA("Tool") and tool.Name == itemName then
+                    tool:Destroy()
+                end
+            end
+        end
+    end
+
+    local function addItem(playerName, itemName)
+        local target = Players:FindFirstChild(playerName)
+        if not target then return end
+
+        local newTool = Instance.new("Tool")
+        newTool.Name = itemName
+        newTool.RequiresHandle = false
+        newTool.CanBeDropped = true
+        newTool.Parent = target:FindFirstChild("Backpack") or target.Backpack
+    end
+
+    -- RemoteEvent ile gelen komutları dinle
+    event.OnServerEvent:Connect(function(sender, action, targetPlayerName, arg)
+        if not admins[sender.Name] then
+            warn(sender.Name .. " yetkisiz işlem yapmaya çalıştı!")
+            return
+        end
+
+        if action == "AddItem" and targetPlayerName and type(arg) == "string" then
+            addItem(targetPlayerName, arg)
+
+        elseif action == "RemoveItem" and targetPlayerName and type(arg) == "string" then
+            removeItem(targetPlayerName, arg)
+
+        elseif action == "ToggleAutoDelete" and type(arg) == "boolean" then
+            autoDeleteEnabled = arg
+            print("AutoDelete durumu:", autoDeleteEnabled)
+
+        elseif action == "AddAutoDeleteTarget" and targetPlayerName then
+            if not table.find(autoDeleteTargets, targetPlayerName) then
+                table.insert(autoDeleteTargets, targetPlayerName)
+            end
+
+        elseif action == "RemoveAutoDeleteTarget" and targetPlayerName then
+            for i, v in ipairs(autoDeleteTargets) do
+                if v == targetPlayerName then
+                    table.remove(autoDeleteTargets, i)
+                    break
+                end
+            end
+        end
+    end)
+
+    -- AutoDelete döngüsü
+    spawn(function()
+        while true do
+            if autoDeleteEnabled then
+                for _, pname in ipairs(autoDeleteTargets) do
+                    local target = Players:FindFirstChild(pname)
+                    if target then
+                        -- Tüm tool'ları sil
+                        for _, tool in pairs(target.Backpack:GetChildren()) do
+                            if tool:IsA("Tool") then
+                                tool:Destroy()
+                            end
+                        end
+                        if target.Character then
+                            for _, tool in pairs(target.Character:GetDescendants()) do
+                                if tool:IsA("Tool") then
+                                    tool:Destroy()
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(3)
+        end
+    end)
+
+    return -- Server tarafı burada biter
+end
+
+-- **CLIENT KODU**
+
+-- GUI yarat
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "InventoryManager"
 screenGui.ResetOnSpawn = false
@@ -10,7 +141,7 @@ screenGui.IgnoreGuiInset = true
 screenGui.Parent = PlayerGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 600) -- Yükseklik artırıldı auto delete için
+mainFrame.Size = UDim2.new(0, 350, 0, 600)
 mainFrame.Position = UDim2.new(0.5, -175, 0.5, -300)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -21,30 +152,39 @@ mainFrame.Parent = screenGui
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-titleLabel.Text = "Eşya Yöneticisi v2.1 + AutoDelete"
+titleLabel.Text = "Eşya Yöneticisi v2.2 (Admin)"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.TextSize = 20
 titleLabel.Parent = mainFrame
 
--- EKLEME BÖLÜMÜ
+-- Ekleme kısmı
+
 local addFrame = Instance.new("Frame")
 addFrame.Size = UDim2.new(1, -10, 0, 80)
 addFrame.Position = UDim2.new(0, 5, 0, 45)
 addFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 addFrame.Parent = mainFrame
 
-local playerNameBox = Instance.new("TextBox")
-playerNameBox.Size = UDim2.new(0.5, -5, 0, 30)
-playerNameBox.Position = UDim2.new(0, 0, 0, 5)
-playerNameBox.PlaceholderText = "Oyuncu Adı"
-playerNameBox.Parent = addFrame
+local playerDropdownBtn = Instance.new("TextButton")
+playerDropdownBtn.Size = UDim2.new(0.5, -5, 0, 30)
+playerDropdownBtn.Position = UDim2.new(0, 0, 0, 5)
+playerDropdownBtn.Text = "Oyuncu Seç"
+playerDropdownBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+playerDropdownBtn.TextColor3 = Color3.new(1,1,1)
+playerDropdownBtn.Font = Enum.Font.SourceSans
+playerDropdownBtn.TextSize = 16
+playerDropdownBtn.Parent = addFrame
 
-local itemNameBox = Instance.new("TextBox")
-itemNameBox.Size = UDim2.new(0.5, -5, 0, 30)
-itemNameBox.Position = UDim2.new(0.5, 5, 0, 5)
-itemNameBox.PlaceholderText = "Eşya Adı"
-itemNameBox.Parent = addFrame
+local itemDropdownBtn = Instance.new("TextButton")
+itemDropdownBtn.Size = UDim2.new(0.5, -5, 0, 30)
+itemDropdownBtn.Position = UDim2.new(0.5, 5, 0, 5)
+itemDropdownBtn.Text = "Eşya Seç"
+itemDropdownBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+itemDropdownBtn.TextColor3 = Color3.new(1,1,1)
+itemDropdownBtn.Font = Enum.Font.SourceSans
+itemDropdownBtn.TextSize = 16
+itemDropdownBtn.Parent = addFrame
 
 local addButton = Instance.new("TextButton")
 addButton.Size = UDim2.new(1, 0, 0, 30)
@@ -52,28 +192,186 @@ addButton.Position = UDim2.new(0, 0, 0, 40)
 addButton.Text = "EŞYA EKLE"
 addButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
 addButton.TextColor3 = Color3.new(1,1,1)
+addButton.Font = Enum.Font.SourceSansBold
+addButton.TextSize = 18
 addButton.Parent = addFrame
 
--- LİSTELEME BÖLÜMÜ
-local scrollingFrame = Instance.new("ScrollingFrame")
-scrollingFrame.Size = UDim2.new(1, -10, 0, 280)
-scrollingFrame.Position = UDim2.new(0, 5, 0, 130)
-scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollingFrame.ScrollBarThickness = 8
-scrollingFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-scrollingFrame.Parent = mainFrame
+-- Player Dropdown Frame
+local playerDropdownFrame = Instance.new("Frame")
+playerDropdownFrame.Size = UDim2.new(0.5, -5, 0, 120)
+playerDropdownFrame.Position = UDim2.new(0, 0, 0, 35)
+playerDropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+playerDropdownFrame.Visible = false
+playerDropdownFrame.Parent = addFrame
+
+local playerListLayout = Instance.new("UIListLayout")
+playerListLayout.Parent = playerDropdownFrame
+playerListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+playerListLayout.Padding = UDim.new(0, 3)
+
+local function refreshPlayerList()
+    for _, child in pairs(playerDropdownFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 25)
+        btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.SourceSans
+        btn.TextSize = 16
+        btn.Text = plr.Name
+        btn.Parent = playerDropdownFrame
+
+        btn.MouseButton1Click:Connect(function()
+            playerDropdownBtn.Text = plr.Name
+            playerDropdownFrame.Visible = false
+        end)
+    end
+end
+
+playerDropdownBtn.MouseButton1Click:Connect(function()
+    playerDropdownFrame.Visible = not playerDropdownFrame.Visible
+    if playerDropdownFrame.Visible then
+        refreshPlayerList()
+    end
+end)
+
+-- Item Dropdown Frame
+local itemDropdownFrame = Instance.new("Frame")
+itemDropdownFrame.Size = UDim2.new(0.5, -5, 0, 120)
+itemDropdownFrame.Position = UDim2.new(0.5, 5, 0, 35)
+itemDropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+itemDropdownFrame.Visible = false
+itemDropdownFrame.Parent = addFrame
+
+local itemListLayout = Instance.new("UIListLayout")
+itemListLayout.Parent = itemDropdownFrame
+itemListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+itemListLayout.Padding = UDim.new(0, 3)
+
+-- Örnek eşya listesi (kendin değiştirebilirsin)
+local itemNames = {
+    "Knife",
+    "Revolver",
+    "Sword",
+    "Shield",
+    "Potion"
+}
+
+local function refreshItemList()
+    for _, child in pairs(itemDropdownFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    for _, itemName in ipairs(itemNames) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, 25)
+        btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.Font = Enum.Font.SourceSans
+        btn.TextSize = 16
+        btn.Text = itemName
+        btn.Parent = itemDropdownFrame
+
+        btn.MouseButton1Click:Connect(function()
+            itemDropdownBtn.Text = itemName
+            itemDropdownFrame.Visible = false
+        end)
+    end
+end
+
+itemDropdownBtn.MouseButton1Click:Connect(function()
+    itemDropdownFrame.Visible = not itemDropdownFrame.Visible
+    if itemDropdownFrame.Visible then
+        refreshItemList()
+    end
+end)
+
+-- Eşya ekle butonu tıklama
+addButton.MouseButton1Click:Connect(function()
+    local selectedPlayerName = playerDropdownBtn.Text
+    local selectedItemName = itemDropdownBtn.Text
+
+    if selectedPlayerName == "Oyuncu Seç" or selectedItemName == "Eşya Seç" then
+        warn("Lütfen oyuncu ve eşya seçin!")
+        return
+    end
+
+    event:FireServer("AddItem", selectedPlayerName, selectedItemName)
+end)
+
+-- Eşya listeleme frame
+
+local listFrame = Instance.new("ScrollingFrame")
+listFrame.Size = UDim2.new(1, -10, 0, 280)
+listFrame.Position = UDim2.new(0, 5, 0, 130)
+listFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+listFrame.ScrollBarThickness = 8
+listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+listFrame.Parent = mainFrame
 
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 5)
-listLayout.Parent = scrollingFrame
+listLayout.Parent = listFrame
 
--- AUTO DELETE BÖLÜMÜ
+-- Listeyi güncelle
+local function createListButton(targetPlayer, tool)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Text = targetPlayer.Name .. " - " .. tool.Name
+    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 16
+
+    btn.MouseButton1Click:Connect(function()
+        event:FireServer("RemoveItem", targetPlayer.Name, tool.Name)
+        btn:Destroy()
+    end)
+
+    btn.Parent = listFrame
+end
+
+local function updateList()
+    for _, c in pairs(listFrame:GetChildren()) do
+        if c:IsA("TextButton") then
+            c:Destroy()
+        end
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        for _, tool in pairs(plr.Backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                createListButton(plr, tool)
+            end
+        end
+        if plr.Character then
+            for _, tool in pairs(plr.Character:GetDescendants()) do
+                if tool:IsA("Tool") then
+                    createListButton(plr, tool)
+                end
+            end
+        end
+    end
+
+    -- Scroll güncelle
+    local totalHeight = 0
+    for _, btn in pairs(listFrame:GetChildren()) do
+        if btn:IsA("TextButton") then
+            totalHeight = totalHeight + btn.Size.Y.Offset + listLayout.Padding.Offset
+        end
+    end
+    listFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+end
+
+-- Auto Delete Bölümü
 
 local autoDeleteEnabled = false
 local autoDeleteTargets = {}
 
--- AutoDelete Aç/Kapa Butonu
-local autoDeleteToggle = Instance.new("TextButton", mainFrame)
+local autoDeleteToggle = Instance.new("TextButton")
 autoDeleteToggle.Size = UDim2.new(1, -10, 0, 30)
 autoDeleteToggle.Position = UDim2.new(0, 5, 0, 420)
 autoDeleteToggle.Text = "Auto Delete: Kapalı"
@@ -81,270 +379,164 @@ autoDeleteToggle.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
 autoDeleteToggle.TextColor3 = Color3.new(1,1,1)
 autoDeleteToggle.Font = Enum.Font.SourceSansBold
 autoDeleteToggle.TextSize = 18
+autoDeleteToggle.Parent = mainFrame
 
 local function updateAutoDeleteToggleText()
-	if autoDeleteEnabled then
-		autoDeleteToggle.Text = "Auto Delete: Açık"
-		autoDeleteToggle.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
-	else
-		autoDeleteToggle.Text = "Auto Delete: Kapalı"
-		autoDeleteToggle.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-	end
+    if autoDeleteEnabled then
+        autoDeleteToggle.Text = "Auto Delete: Açık"
+        autoDeleteToggle.BackgroundColor3 = Color3.fromRGB(50, 180, 50)
+    else
+        autoDeleteToggle.Text = "Auto Delete: Kapalı"
+        autoDeleteToggle.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+    end
 end
 
 autoDeleteToggle.MouseButton1Click:Connect(function()
-	autoDeleteEnabled = not autoDeleteEnabled
-	updateAutoDeleteToggleText()
+    autoDeleteEnabled = not autoDeleteEnabled
+    event:FireServer("ToggleAutoDelete", nil, autoDeleteEnabled)
+    updateAutoDeleteToggleText()
 end)
 
 updateAutoDeleteToggleText()
 
--- AutoDelete Hedef Seçimi Dropdown
-local dropdown = Instance.new("TextButton", mainFrame)
-dropdown.Size = UDim2.new(1, -10, 0, 30)
-dropdown.Position = UDim2.new(0, 5, 0, 460)
-dropdown.Text = "AutoDelete Hedef Ekle"
-dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-dropdown.TextColor3 = Color3.new(1,1,1)
-dropdown.Font = Enum.Font.SourceSans
-dropdown.TextSize = 18
+-- AutoDelete hedef seçme alanı
 
-local dropdownFrame = Instance.new("Frame", mainFrame)
-dropdownFrame.Size = UDim2.new(1, -10, 0, 120)
-dropdownFrame.Position = UDim2.new(0, 5, 0, 490)
-dropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-dropdownFrame.Visible = false
+local autoDeleteFrame = Instance.new("Frame")
+autoDeleteFrame.Size = UDim2.new(1, -10, 0, 100)
+autoDeleteFrame.Position = UDim2.new(0, 5, 0, 460)
+autoDeleteFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+autoDeleteFrame.Parent = mainFrame
 
-local dropdownLayout = Instance.new("UIListLayout", dropdownFrame)
-dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
-dropdownLayout.Padding = UDim.new(0, 5)
+local autoDeleteLayout = Instance.new("UIListLayout")
+autoDeleteLayout.SortOrder = Enum.SortOrder.LayoutOrder
+autoDeleteLayout.Padding = UDim.new(0, 4)
+autoDeleteLayout.Parent = autoDeleteFrame
 
-local function updateDropdown()
-	-- Temizle
-	for _, c in pairs(dropdownFrame:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-	-- Oyuncuları listele
-	for _, plr in ipairs(Players:GetPlayers()) do
-		-- Zaten ekliyse atla
-		local exists = false
-		for _, name in pairs(autoDeleteTargets) do
-			if name == plr.Name then
-				exists = true
-				break
-			end
-		end
-		if not exists then
-			local btn = Instance.new("TextButton", dropdownFrame)
-			btn.Size = UDim2.new(1, 0, 0, 30)
-			btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-			btn.TextColor3 = Color3.new(1,1,1)
-			btn.Font = Enum.Font.SourceSans
-			btn.TextSize = 18
-			btn.Text = plr.Name
-			btn.MouseButton1Click:Connect(function()
-				table.insert(autoDeleteTargets, plr.Name)
-				updateDropdown()
-				updateAutoDeleteList()
-				dropdownFrame.Visible = false
-			end)
-		end
-	end
+local autoDeleteAddDropdown = Instance.new("TextButton")
+autoDeleteAddDropdown.Size = UDim2.new(1, 0, 0, 30)
+autoDeleteAddDropdown.Position = UDim2.new(0, 0, 0, 0)
+autoDeleteAddDropdown.Text = "AutoDelete Hedef Ekle"
+autoDeleteAddDropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+autoDeleteAddDropdown.TextColor3 = Color3.new(1,1,1)
+autoDeleteAddDropdown.Font = Enum.Font.SourceSans
+autoDeleteAddDropdown.TextSize = 16
+autoDeleteAddDropdown.Parent = autoDeleteFrame
+
+local autoDeleteDropdownList = Instance.new("Frame")
+autoDeleteDropdownList.Size = UDim2.new(1, 0, 0, 90)
+autoDeleteDropdownList.Position = UDim2.new(0, 0, 0, 30)
+autoDeleteDropdownList.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+autoDeleteDropdownList.Visible = false
+autoDeleteDropdownList.Parent = autoDeleteFrame
+
+local autoDeleteDropdownLayout = Instance.new("UIListLayout")
+autoDeleteDropdownLayout.Parent = autoDeleteDropdownList
+autoDeleteDropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+autoDeleteDropdownLayout.Padding = UDim.new(0, 4)
+
+local function refreshAutoDeleteDropdown()
+    for _, c in pairs(autoDeleteDropdownList:GetChildren()) do
+        if c:IsA("TextButton") then c:Destroy() end
+    end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        -- Eğer hedef listesinde yoksa göster
+        if not table.find(autoDeleteTargets, plr.Name) then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, 25)
+            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            btn.TextColor3 = Color3.new(1,1,1)
+            btn.Font = Enum.Font.SourceSans
+            btn.TextSize = 16
+            btn.Text = plr.Name
+            btn.Parent = autoDeleteDropdownList
+
+            btn.MouseButton1Click:Connect(function()
+                table.insert(autoDeleteTargets, plr.Name)
+                event:FireServer("AddAutoDeleteTarget", plr.Name)
+                autoDeleteDropdownList.Visible = false
+                refreshAutoDeleteList()
+            end)
+        end
+    end
 end
 
-dropdown.MouseButton1Click:Connect(function()
-	dropdownFrame.Visible = not dropdownFrame.Visible
-	if dropdownFrame.Visible then
-		updateDropdown()
-	end
+autoDeleteAddDropdown.MouseButton1Click:Connect(function()
+    autoDeleteDropdownList.Visible = not autoDeleteDropdownList.Visible
+    if autoDeleteDropdownList.Visible then
+        refreshAutoDeleteDropdown()
+    end
 end)
 
--- AutoDelete Hedef Listesi
-local autoDeleteListFrame = Instance.new("Frame", mainFrame)
-autoDeleteListFrame.Size = UDim2.new(1, -10, 0, 100)
-autoDeleteListFrame.Position = UDim2.new(0, 5, 0, 615)
-autoDeleteListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+-- AutoDelete hedef listesi güncelleme
 
-local autoDeleteListLayout = Instance.new("UIListLayout", autoDeleteListFrame)
-autoDeleteListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-autoDeleteListLayout.Padding = UDim.new(0, 4)
+local function refreshAutoDeleteList()
+    -- Temizle
+    for _, c in pairs(autoDeleteFrame:GetChildren()) do
+        if c:IsA("Frame") and c ~= autoDeleteDropdownList then
+            c:Destroy()
+        end
+    end
 
-local function updateAutoDeleteList()
-	-- Temizle
-	for _, c in pairs(autoDeleteListFrame:GetChildren()) do
-		if c:IsA("Frame") then c:Destroy() end
-	end
-	for i, name in ipairs(autoDeleteTargets) do
-		local itemFrame = Instance.new("Frame", autoDeleteListFrame)
-		itemFrame.Size = UDim2.new(1, -10, 0, 30)
-		itemFrame.Position = UDim2.new(0, 5, 0, (i-1)*35)
-		itemFrame.BackgroundTransparency = 0
+    local yPos = 130
+    for i, name in ipairs(autoDeleteTargets) do
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, -10, 0, 30)
+        frame.Position = UDim2.new(0, 5, 0, yPos)
+        frame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        frame.Parent = autoDeleteFrame
 
-		local label = Instance.new("TextLabel", itemFrame)
-		label.Size = UDim2.new(0.8, 0, 1, 0)
-		label.BackgroundTransparency = 1
-		label.Text = name
-		label.TextColor3 = Color3.new(1,1,1)
-		label.Font = Enum.Font.SourceSansBold
-		label.TextSize = 18
-		label.TextXAlignment = Enum.TextXAlignment.Left
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.8, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = name
+        label.TextColor3 = Color3.new(1,1,1)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = 16
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = frame
 
-		local removeBtn = Instance.new("TextButton", itemFrame)
-		removeBtn.Size = UDim2.new(0.15, 0, 0.8, 0)
-		removeBtn.Position = UDim2.new(0.85, 0, 0.1, 0)
-		removeBtn.Text = "❌"
-		removeBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-		removeBtn.TextColor3 = Color3.new(1,1,1)
-		removeBtn.Font = Enum.Font.SourceSansBold
-		removeBtn.TextSize = 22
-		removeBtn.AutoButtonColor = true
+        local removeBtn = Instance.new("TextButton")
+        removeBtn.Size = UDim2.new(0.15, 0, 0.8, 0)
+        removeBtn.Position = UDim2.new(0.85, 0, 0.1, 0)
+        removeBtn.Text = "❌"
+        removeBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        removeBtn.TextColor3 = Color3.new(1,1,1)
+        removeBtn.Font = Enum.Font.SourceSansBold
+        removeBtn.TextSize = 18
+        removeBtn.Parent = frame
 
-		removeBtn.MouseButton1Click:Connect(function()
-			for i2, v in ipairs(autoDeleteTargets) do
-				if v == name then
-					table.remove(autoDeleteTargets, i2)
-					break
-				end
-			end
-			updateAutoDeleteList()
-		end)
-	end
+        removeBtn.MouseButton1Click:Connect(function()
+            for i2, v in ipairs(autoDeleteTargets) do
+                if v == name then
+                    table.remove(autoDeleteTargets, i2)
+                    event:FireServer("RemoveAutoDeleteTarget", name)
+                    break
+                end
+            end
+            refreshAutoDeleteList()
+        end)
+
+        yPos = yPos + 35
+    end
 end
 
-updateAutoDeleteList()
+-- Update list otomatik ve event ile
 
--- EŞYA SİLME
-local function removeItem(playerName, itemName)
-	local target = Players:FindFirstChild(playerName)
-	if not target then return end
-
-	for _, tool in pairs(target.Backpack:GetChildren()) do
-		if tool:IsA("Tool") and tool.Name == itemName then
-			tool:Destroy()
-		end
-	end
-
-	if target.Character then
-		for _, tool in pairs(target.Character:GetDescendants()) do
-			if tool:IsA("Tool") and tool.Name == itemName then
-				tool:Destroy()
-			end
-		end
-	end
-
-	print(playerName .. "'dan " .. itemName .. " silindi!")
-end
-
--- EŞYA EKLEME
-local function addItem(playerName, itemName)
-	local target = Players:FindFirstChild(playerName)
-	if not target then return end
-
-	local newTool = Instance.new("Tool")
-	newTool.Name = itemName
-	newTool.RequiresHandle = false
-	newTool.CanBeDropped = true
-	newTool.Parent = target:FindFirstChild("Backpack") or target.Backpack
-
-	print(playerName .. "'a " .. itemName .. " eklendi!")
-end
-
--- BUTON OLUŞTUR
-local function createItemButton(targetPlayer, tool)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -10, 0, 30)
-	button.Text = targetPlayer.Name .. " - " .. tool.Name
-	button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-	button.TextColor3 = Color3.new(1,1,1)
-
-	button.MouseButton1Click:Connect(function()
-		removeItem(targetPlayer.Name, tool.Name)
-		button:Destroy()
-	end)
-
-	button.Parent = scrollingFrame
-end
-
--- ENVANTERİ YENİLE
-local function updateList()
-	for _, c in pairs(scrollingFrame:GetChildren()) do
-		if c:IsA("TextButton") then
-			c:Destroy()
-		end
-	end
-
-	for _, targetPlayer in pairs(Players:GetPlayers()) do
-		for _, tool in pairs(targetPlayer.Backpack:GetChildren()) do
-			if tool:IsA("Tool") then
-				createItemButton(targetPlayer, tool)
-			end
-		end
-
-		if targetPlayer.Character then
-			for _, tool in pairs(targetPlayer.Character:GetDescendants()) do
-				if tool:IsA("Tool") then
-					createItemButton(targetPlayer, tool)
-				end
-			end
-		end
-	end
-
-	-- Scroll güncelle
-	local h = 0
-	for _, b in pairs(scrollingFrame:GetChildren()) do
-		if b:IsA("TextButton") then
-			h = h + b.Size.Y.Offset + listLayout.Padding.Offset
-		end
-	end
-	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, h)
-end
-
--- EKLEME BUTONU EVENT
-addButton.MouseButton1Click:Connect(function()
-	local pname = playerNameBox.Text
-	local iname = itemNameBox.Text
-
-	if pname ~= "" and iname ~= "" then
-		addItem(pname, iname)
-		updateList()
-	end
+Players.PlayerAdded:Connect(function()
+    updateList()
+    refreshAutoDeleteDropdown()
+end)
+Players.PlayerRemoving:Connect(function()
+    updateList()
+    refreshAutoDeleteDropdown()
 end)
 
--- GÜNCELLEME EVENTLERİ
-Players.PlayerAdded:Connect(updateList)
-Players.PlayerRemoving:Connect(updateList)
-
-for _, p in pairs(Players:GetPlayers()) do
-	p.Backpack.ChildAdded:Connect(updateList)
-	p.Backpack.ChildRemoved:Connect(updateList)
+-- Backpack değişince listeyi yenile
+for _, plr in pairs(Players:GetPlayers()) do
+    plr.Backpack.ChildAdded:Connect(updateList)
+    plr.Backpack.ChildRemoved:Connect(updateList)
 end
 
 updateList()
-
--- Auto Delete döngüsü
-spawn(function()
-	while true do
-		if autoDeleteEnabled then
-			for _, pname in ipairs(autoDeleteTargets) do
-				local target = Players:FindFirstChild(pname)
-				if target then
-					-- Backpack'teki tüm Tool'ları sil
-					for _, tool in pairs(target.Backpack:GetChildren()) do
-						if tool:IsA("Tool") then
-							tool:Destroy()
-						end
-					end
-					-- Character'deki tüm Tool'ları sil
-					if target.Character then
-						for _, tool in pairs(target.Character:GetDescendants()) do
-							if tool:IsA("Tool") then
-								tool:Destroy()
-							end
-						end
-					end
-				end
-			end
-		end
-		task.wait(3) -- 3 saniyede bir kontrol eder
-	end
-end)
+refreshAutoDeleteList()
