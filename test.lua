@@ -1,14 +1,11 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-
--- Eğer CoreGui'ya eklenemiyorsa StarterGui'ya ekle
-local parentGui = CoreGui or player:WaitForChild("PlayerGui")
+local playerGui = player:WaitForChild("PlayerGui")
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "InjectInfoDisplay"
+screenGui.Name = "InfoDisplayGui"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = parentGui
+screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 400, 0, 50)
@@ -29,9 +26,10 @@ label.TextXAlignment = Enum.TextXAlignment.Left
 label.Text = "Kullanıcı - Event - Veri"
 label.Parent = frame
 
+-- Bilgiyi güncelleyen fonksiyon
 local function showInfo(playerName, eventName, data)
     label.Text = string.format("%s - %s - %s", playerName, eventName, tostring(data))
 end
 
--- Örnek veri
+-- Örnek kullanım (bunu istediğin yerden çağırabilirsin)
 showInfo(player.Name, "GameEvents.Misk.BanReceived", "{ reason = 'Hile' }")
