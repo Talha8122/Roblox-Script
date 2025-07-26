@@ -10,8 +10,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = CoreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 400) -- Changed to 400x400
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -200) -- Adjusted position
+mainFrame.Size = UDim2.new(0, 800, 0, 600)
+mainFrame.Position = UDim2.new(0.5, -400, 0.5, -300)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
@@ -26,7 +26,7 @@ titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 titleBar.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -80, 1, 0) -- Adjusted size for new buttons
+titleLabel.Size = UDim2.new(1, -40, 1, 0)
 titleLabel.Position = UDim2.new(0, 10, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -35,18 +35,6 @@ titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextSize = 18
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = titleBar
-
--- Minimize button
-local minimizeButton = Instance.new("TextButton")
-minimizeButton.Size = UDim2.new(0, 30, 0, 30)
-minimizeButton.Position = UDim2.new(1, -70, 0.5, -15)
-minimizeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 120)
-minimizeButton.TextColor3 = Color3.new(1, 1, 1)
-minimizeButton.Text = "_"
-minimizeButton.Font = Enum.Font.GothamBold
-minimizeButton.TextSize = 16
-minimizeButton.Parent = titleBar
-Instance.new("UICorner", minimizeButton)
 
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 30, 0, 30)
@@ -63,11 +51,6 @@ closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
--- Minimize functionality
-minimizeButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
-
 -- Ana içerik
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(1, -20, 1, -60)
@@ -77,19 +60,19 @@ contentFrame.Parent = mainFrame
 
 -- Kullanıcılar listesi
 local usersLabel = Instance.new("TextLabel")
-usersLabel.Size = UDim2.new(0.3, -10, 0, 20) -- Reduced height
+usersLabel.Size = UDim2.new(0.3, -10, 0, 30)
 usersLabel.Position = UDim2.new(0, 0, 0, 0)
 usersLabel.BackgroundTransparency = 1
 usersLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 usersLabel.Text = "Kullanıcılar:"
 usersLabel.Font = Enum.Font.GothamBold
-usersLabel.TextSize = 14 -- Smaller text
+usersLabel.TextSize = 16
 usersLabel.TextXAlignment = Enum.TextXAlignment.Left
 usersLabel.Parent = contentFrame
 
 local usersScrolling = Instance.new("ScrollingFrame")
-usersScrolling.Size = UDim2.new(0.3, -10, 0.8, -30) -- Adjusted size
-usersScrolling.Position = UDim2.new(0, 0, 0, 25) -- Adjusted position
+usersScrolling.Size = UDim2.new(0.3, -10, 0.8, -40)
+usersScrolling.Position = UDim2.new(0, 0, 0, 35)
 usersScrolling.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 usersScrolling.ScrollBarThickness = 6
 usersScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -98,23 +81,23 @@ Instance.new("UICorner", usersScrolling)
 
 local usersListLayout = Instance.new("UIListLayout")
 usersListLayout.Parent = usersScrolling
-usersListLayout.Padding = UDim.new(0, 3) -- Reduced padding
+usersListLayout.Padding = UDim.new(0, 5)
 
 -- Eventler listesi
 local eventsLabel = Instance.new("TextLabel")
-eventsLabel.Size = UDim2.new(0.3, -10, 0, 20) -- Reduced height
+eventsLabel.Size = UDim2.new(0.3, -10, 0, 30)
 eventsLabel.Position = UDim2.new(0.35, 10, 0, 0)
 eventsLabel.BackgroundTransparency = 1
 eventsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 eventsLabel.Text = "Eventler:"
 eventsLabel.Font = Enum.Font.GothamBold
-eventsLabel.TextSize = 14 -- Smaller text
+eventsLabel.TextSize = 16
 eventsLabel.TextXAlignment = Enum.TextXAlignment.Left
 eventsLabel.Parent = contentFrame
 
 local eventsScrolling = Instance.new("ScrollingFrame")
-eventsScrolling.Size = UDim2.new(0.3, -10, 0.8, -30) -- Adjusted size
-eventsScrolling.Position = UDim2.new(0.35, 10, 0, 25) -- Adjusted position
+eventsScrolling.Size = UDim2.new(0.3, -10, 0.8, -40)
+eventsScrolling.Position = UDim2.new(0.35, 10, 0, 35)
 eventsScrolling.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 eventsScrolling.ScrollBarThickness = 6
 eventsScrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -123,27 +106,27 @@ Instance.new("UICorner", eventsScrolling)
 
 local eventsListLayout = Instance.new("UIListLayout")
 eventsListLayout.Parent = eventsScrolling
-eventsListLayout.Padding = UDim.new(0, 3) -- Reduced padding
+eventsListLayout.Padding = UDim.new(0, 5)
 
 -- Veri girişi
 local dataLabel = Instance.new("TextLabel")
-dataLabel.Size = UDim2.new(0.3, -10, 0, 20) -- Reduced height
+dataLabel.Size = UDim2.new(0.3, -10, 0, 30)
 dataLabel.Position = UDim2.new(0.7, 10, 0, 0)
 dataLabel.BackgroundTransparency = 1
 dataLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 dataLabel.Text = "Gönderilecek Veri:"
 dataLabel.Font = Enum.Font.GothamBold
-dataLabel.TextSize = 14 -- Smaller text
+dataLabel.TextSize = 16
 dataLabel.TextXAlignment = Enum.TextXAlignment.Left
 dataLabel.Parent = contentFrame
 
 local dataInput = Instance.new("TextBox")
-dataInput.Size = UDim2.new(0.3, -10, 0.8, -30) -- Adjusted size
-dataInput.Position = UDim2.new(0.7, 10, 0, 25) -- Adjusted position
+dataInput.Size = UDim2.new(0.3, -10, 0.8, -40)
+dataInput.Position = UDim2.new(0.7, 10, 0, 35)
 dataInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 dataInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 dataInput.Font = Enum.Font.Gotham
-dataInput.TextSize = 12 -- Smaller text
+dataInput.TextSize = 14
 dataInput.TextWrapped = true
 dataInput.TextXAlignment = Enum.TextXAlignment.Left
 dataInput.TextYAlignment = Enum.TextYAlignment.Top
@@ -153,7 +136,7 @@ Instance.new("UICorner", dataInput)
 
 -- Butonlar
 local buttonsFrame = Instance.new("Frame")
-buttonsFrame.Size = UDim2.new(1, 0, 0, 30) -- Reduced height
+buttonsFrame.Size = UDim2.new(1, 0, 0, 40)
 buttonsFrame.Position = UDim2.new(0, 0, 0.85, 0)
 buttonsFrame.BackgroundTransparency = 1
 buttonsFrame.Parent = contentFrame
@@ -165,7 +148,7 @@ refreshButton.BackgroundColor3 = Color3.fromRGB(70, 70, 90)
 refreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 refreshButton.Text = "Yenile"
 refreshButton.Font = Enum.Font.GothamBold
-refreshButton.TextSize = 14 -- Smaller text
+refreshButton.TextSize = 16
 refreshButton.Parent = buttonsFrame
 Instance.new("UICorner", refreshButton)
 
@@ -176,7 +159,7 @@ sendButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
 sendButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 sendButton.Text = "Gönder"
 sendButton.Font = Enum.Font.GothamBold
-sendButton.TextSize = 14 -- Smaller text
+sendButton.TextSize = 16
 sendButton.Parent = buttonsFrame
 Instance.new("UICorner", sendButton)
 
@@ -187,12 +170,12 @@ local selectedEvent = nil
 -- Kullanıcı butonu oluşturma
 local function createUserButton(player)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 30) -- Reduced height
+    button.Size = UDim2.new(1, -10, 0, 40)
     button.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.Text = player.Name
     button.Font = Enum.Font.Gotham
-    button.TextSize = 12 -- Smaller text
+    button.TextSize = 14
     button.Parent = usersScrolling
     Instance.new("UICorner", button)
 
@@ -212,12 +195,12 @@ end
 -- Event butonu oluşturma
 local function createEventButton(eventName)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 30) -- Reduced height
+    button.Size = UDim2.new(1, -10, 0, 40)
     button.BackgroundColor3 = Color3.fromRGB(60, 80, 60)
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.Text = eventName
     button.Font = Enum.Font.Gotham
-    button.TextSize = 12 -- Smaller text
+    button.TextSize = 14
     button.Parent = eventsScrolling
     Instance.new("UICorner", button)
 
