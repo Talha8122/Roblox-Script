@@ -1,52 +1,129 @@
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local cg = game:GetService("CoreGui")
 
--- Admin listesi (yetkili oyuncular)
-local admins = {
-    ["AdminOyuncuAdi"] = true, -- kendi admin isminle değiştir
-}
-
--- RemoteEvent oluştur veya bul
-local eventName = "RemoveItemEvent"
-local removeItemEvent = ReplicatedStorage:FindFirstChild(eventName)
-if not removeItemEvent then
-    removeItemEvent = Instance.new("RemoteEvent")
-    removeItemEvent.Name = eventName
-    removeItemEvent.Parent = ReplicatedStorage
+-- Temizle varsa önce (isteğe bağlı)
+local existingGui = cg:FindFirstChild("WeaponRemoverGui")
+if existingGui then
+    existingGui:Destroy()
 end
 
--- Eşya silme fonksiyonu
-local function removeItem(playerName, itemName)
-    local target = Players:FindFirstChild(playerName)
-    if not target then return end
+-- GUI oluştur
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WeaponRemoverGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = cg
 
-    -- Backpack'teki eşya
-    for _, tool in pairs(target.Backpack:GetChildren()) do
-        if tool:IsA("Tool") and tool.Name == itemName then
-            tool:Destroy()
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 350, 0, 400)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+titleLabel.Text = "Weapon Remover"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 20
+titleLabel.Parent = mainFrame
+
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Size = UDim2.new(1, -20, 1, -50)
+scrollingFrame.Position = UDim2.new(0, 10, 0, 45)
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingFrame.ScrollBarThickness = 8
+scrollingFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+scrollingFrame.BorderSizePixel = 0
+scrollingFrame.Parent = mainFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 5)
+listLayout.Parent = scrollingFrame
+
+-- RemoteEvent (Sunucu ile iletişim için)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local removeToolEvent = ReplicatedStorage:FindFirstChild("RemoveToolEvent")
+
+-- Araç silme isteği gönder
+local function sendRemoveRequest(playerName, toolName)
+    if removeToolEvent then
+        removeToolEvent:FireServer(playerName, toolName)
+    else
+        warn("RemoveToolEvent yok!")
+    end
+end
+
+-- Buton oluştur
+local function createToolButton(tool, ownerPlayer)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Text = ownerPlayer.Name .. " - " .. tool.Name
+    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 18
+    btn.Parent = scrollingFrame
+
+    btn.MouseButton1Click:Connect(function()
+        sendRemoveRequest(ownerPlayer.Name, tool.Name)
+    end)
+end
+
+-- Listeyi güncelle
+local function updateList()
+    -- Önceki butonları temizle
+    for _, child in pairs(scrollingFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
         end
     end
 
-    -- Karakterdeki eşya
-    if target.Character then
-        for _, tool in pairs(target.Character:GetDescendants()) do
-            if tool:IsA("Tool") and tool.Name == itemName then
-                tool:Destroy()
+    for _, plr in pairs(Players:GetPlayers()) do
+        -- Backpack araçları
+        for _, tool in pairs(plr.Backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                createToolButton(tool, plr)
+            end
+        end
+        -- Karakter üzerindeki araçlar
+        if plr.Character then
+            for _, tool in pairs(plr.Character:GetChildren()) do
+                if tool:IsA("Tool") then
+                    createToolButton(tool, plr)
+                end
             end
         end
     end
 
-    print(playerName .. " isimli oyuncudan '" .. itemName .. "' silindi.")
+    -- Scroll içerik yüksekliği ayarla
+    local totalHeight = 0
+    for _, btn in pairs(scrollingFrame:GetChildren()) do
+        if btn:IsA("TextButton") then
+            totalHeight = totalHeight + btn.Size.Y.Offset + listLayout.Padding.Offset
+        end
+    end
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
 end
 
--- RemoteEvent ile silme talebini dinle
-removeItemEvent.OnServerEvent:Connect(function(sender, targetPlayerName, itemName)
-    if not admins[sender.Name] then
-        warn(sender.Name .. " yetkisiz eşya silmeye çalıştı!")
-        return
-    end
+-- Listenin güncellenmesi için eventler
+Players.PlayerAdded:Connect(updateList)
+Players.PlayerRemoving:Connect(updateList)
+for _, plr in pairs(Players:GetPlayers()) do
+    plr.Backpack.ChildAdded:Connect(updateList)
+    plr.Backpack.ChildRemoved:Connect(updateList)
+end
 
-    if typeof(targetPlayerName) == "string" and typeof(itemName) == "string" then
-        removeItem(targetPlayerName, itemName)
-    end
-end)
+-- Başlangıçta listeyi güncelle
+updateList()
+
+-- Listenin düzenli güncellenmesi (opsiyonel)
+while true do
+    task.wait(2)
+    updateList()
+end
