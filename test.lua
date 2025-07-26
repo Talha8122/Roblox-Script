@@ -32,6 +32,3 @@ label.Parent = frame
 local function showInfo(playerName, eventName, data)
     label.Text = string.format("%s - %s - %s", playerName, eventName, tostring(data))
 end
-
--- Örnek veri
-showInfo(player.Name, "GameEvents.Misk.BanReceived", "{ reason = 'Hile' }")
