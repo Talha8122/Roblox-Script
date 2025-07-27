@@ -44,101 +44,106 @@ local dragging = false
 local dragStart, startPos
 
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
 
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
 end)
 
+-- Event gönderme fonksiyonu
+local function sendBanEvent()
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remote = replicatedStorage:FindFirstChild("GameEvents")
+
+	if remote and remote:FindFirstChild("Misk") and remote.Misk:FindFirstChild("BanReceived") then
+		local event = remote.Misk.BanReceived
+		event:FireServer("Exploit") -- veya doğrudan "30" gibi
+	else
+		warn("BanReceived event bulunamadı!")
+	end
+end
+
 local function createToolButton(tool, player)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, -10, 0, 30)
-    button.Text = player.Name .. " - " .. tool.Name
-    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.SourceSans
-    button.TextSize = 18
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 0, 30)
+	button.Text = player.Name .. " - " .. tool.Name
+	button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.Font = Enum.Font.SourceSans
+	button.TextSize = 18
 
-    button.MouseButton1Click:Connect(function()
-        if tool and tool.Parent then
-            local remote = tool:FindFirstChild("ClientEvent")
-            if remote then
-                remote:FireServer("BanReceived", {
-                    reason = "Exploit",
-                    duration = 30
-                })
-            end
-        end
-    end)
+	button.MouseButton1Click:Connect(function()
+		sendBanEvent()
+	end)
 
-    button.Parent = scrollingFrame
+	button.Parent = scrollingFrame
 end
 
 local function populateTools()
-    for _, child in pairs(scrollingFrame:GetChildren()) do
-        if child:IsA("TextButton") then
-            child:Destroy()
-        end
-    end
+	for _, child in pairs(scrollingFrame:GetChildren()) do
+		if child:IsA("TextButton") then
+			child:Destroy()
+		end
+	end
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if player:FindFirstChild("Backpack") then
-            for _, tool in pairs(player.Backpack:GetChildren()) do
-                if tool:IsA("Tool") and (tool.Name == "Knife" or tool.Name == "Revolver") then
-                    createToolButton(tool, player)
-                end
-            end
-        end
+	for _, player in pairs(Players:GetPlayers()) do
+		if player:FindFirstChild("Backpack") then
+			for _, tool in pairs(player.Backpack:GetChildren()) do
+				if tool:IsA("Tool") and (tool.Name == "Knife" or tool.Name == "Revolver") then
+					createToolButton(tool, player)
+				end
+			end
+		end
 
-        local char = player.Character
-        if char then
-            for _, tool in pairs(char:GetDescendants()) do
-                if tool:IsA("Tool") and (tool.Name == "Knife" or tool.Name == "Revolver") then
-                    createToolButton(tool, player)
-                end
-            end
-        end
-    end
+		local char = player.Character
+		if char then
+			for _, tool in pairs(char:GetDescendants()) do
+				if tool:IsA("Tool") and (tool.Name == "Knife" or tool.Name == "Revolver") then
+					createToolButton(tool, player)
+				end
+			end
+		end
+	end
 
-    task.wait()
-    local totalHeight = 0
-    for _, button in pairs(scrollingFrame:GetChildren()) do
-        if button:IsA("TextButton") then
-            totalHeight += button.Size.Y.Offset + listLayout.Padding.Offset
-        end
-    end
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+	task.wait()
+	local totalHeight = 0
+	for _, button in pairs(scrollingFrame:GetChildren()) do
+		if button:IsA("TextButton") then
+			totalHeight += button.Size.Y.Offset + listLayout.Padding.Offset
+		end
+	end
+	scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
 end
 
 for _, player in pairs(Players:GetPlayers()) do
-    if player:FindFirstChild("Backpack") then
-        player.Backpack.ChildAdded:Connect(populateTools)
-        player.Backpack.ChildRemoved:Connect(populateTools)
-    end
+	if player:FindFirstChild("Backpack") then
+		player.Backpack.ChildAdded:Connect(populateTools)
+		player.Backpack.ChildRemoved:Connect(populateTools)
+	end
 end
 
 task.spawn(function()
-    while true do
-        populateTools()
-        wait(0.5)
-    end
+	while true do
+		populateTools()
+		wait(0.5)
+	end
 end)
